@@ -1,6 +1,7 @@
 package com.adewusi.roundup
 
 import cats.effect.Concurrent
+import com.adewusi.roundup.model.SavingsGoalsResponse
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.client.Client
