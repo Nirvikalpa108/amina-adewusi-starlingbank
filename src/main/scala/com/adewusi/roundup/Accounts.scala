@@ -15,7 +15,7 @@ trait Accounts[F[_]] {
 }
 
 object Accounts {
-  val accessToken = ""
+  val accessToken = "" //TODO get from config
 
   def impl[F[_]: Concurrent](C: Client[F]): Accounts[F] = new Accounts[F] {
     val dsl = new Http4sClientDsl[F] {}

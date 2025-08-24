@@ -3,7 +3,10 @@ package com.adewusi.roundup
 import cats.effect.Sync
 import cats.implicits._
 import org.http4s.HttpRoutes
+import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dsl.Http4sDsl
+
+import java.time.ZonedDateTime
 
 object RoundupRoutes {
 
@@ -46,6 +49,28 @@ object RoundupRoutes {
             Sync[F].delay(rootCause.printStackTrace()) *>
             InternalServerError("Internal error")
         }
+    }
+  }
+
+  def transactionsRoutes[F[_]: Sync](T: Transactions[F]): HttpRoutes[F] = {
+    val dsl = new Http4sDsl[F] {}
+    import dsl._
+
+    object MinTransactionTimestampQueryParamMatcher extends QueryParamDecoderMatcher[String]("minTransactionTimestamp")
+    object MaxTransactionTimestampQueryParamMatcher extends QueryParamDecoderMatcher[String]("maxTransactionTimestamp")
+
+    HttpRoutes.of[F] {
+      case GET -> Root / "feed" / "account" / accountUid / "settled-transactions-between"
+        :? MinTransactionTimestampQueryParamMatcher(minTimestampStr)
+        +& MaxTransactionTimestampQueryParamMatcher(maxTimestampStr) =>
+
+        for {
+          // Parse timestamps
+          minTs <- Sync[F].delay(ZonedDateTime.parse(minTimestampStr))
+          maxTs <- Sync[F].delay(ZonedDateTime.parse(maxTimestampStr))
+          transactions <- T.getSettledTransactionsBetween(accountUid, minTs, maxTs)
+          resp <- Ok(transactions)
+        } yield resp
     }
   }
 }

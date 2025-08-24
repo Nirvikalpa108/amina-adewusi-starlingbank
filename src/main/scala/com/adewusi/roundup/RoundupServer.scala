@@ -17,6 +17,7 @@ object RoundupServer {
       helloWorldAlg = HelloWorld.impl[F]
       jokeAlg = Jokes.impl[F](client)
       accountsAlg = Accounts.impl[F](client)
+      transactionsAlg = Transactions.impl[F](client)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
@@ -25,7 +26,8 @@ object RoundupServer {
       httpApp = (
         RoundupRoutes.helloWorldRoutes[F](helloWorldAlg) <+>
           RoundupRoutes.jokeRoutes[F](jokeAlg) <+>
-          RoundupRoutes.accountsRoutes[F](accountsAlg)
+          RoundupRoutes.accountsRoutes[F](accountsAlg) <+>
+          RoundupRoutes.transactionsRoutes[F](transactionsAlg)
       ).orNotFound
 
       // With Middlewares in place
