@@ -30,4 +30,22 @@ object RoundupRoutes {
         } yield resp
     }
   }
+
+  def accountsRoutes[F[_]: Sync](A: Accounts[F]): HttpRoutes[F] = {
+    val dsl = new Http4sDsl[F] {}
+    import dsl._
+    HttpRoutes.of[F] {
+      case GET -> Root / "accounts" =>
+        (for {
+          accounts <- A.getAccounts()
+          resp <- Ok(accounts)
+        } yield resp).handleErrorWith { e =>
+          val rootCause = Option(e.getCause).getOrElse(e)
+          Sync[F].delay(println(s"Error: ${e.getClass.getSimpleName}")) *>
+            Sync[F].delay(println(s"Root cause: ${rootCause.getClass.getSimpleName}: ${rootCause.getMessage}")) *>
+            Sync[F].delay(rootCause.printStackTrace()) *>
+            InternalServerError("Internal error")
+        }
+    }
+  }
 }

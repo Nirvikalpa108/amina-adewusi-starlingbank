@@ -16,6 +16,7 @@ object RoundupServer {
       client <- EmberClientBuilder.default[F].build
       helloWorldAlg = HelloWorld.impl[F]
       jokeAlg = Jokes.impl[F](client)
+      accountsAlg = Accounts.impl[F](client)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
@@ -23,14 +24,16 @@ object RoundupServer {
       // in the underlying routes.
       httpApp = (
         RoundupRoutes.helloWorldRoutes[F](helloWorldAlg) <+>
-        RoundupRoutes.jokeRoutes[F](jokeAlg)
+          RoundupRoutes.jokeRoutes[F](jokeAlg) <+>
+          RoundupRoutes.accountsRoutes[F](accountsAlg)
       ).orNotFound
 
       // With Middlewares in place
       finalHttpApp = Logger.httpApp(true, true)(httpApp)
 
-      _ <- 
-        EmberServerBuilder.default[F]
+      _ <-
+        EmberServerBuilder
+          .default[F]
           .withHost(ipv4"0.0.0.0")
           .withPort(port"8080")
           .withHttpApp(finalHttpApp)
