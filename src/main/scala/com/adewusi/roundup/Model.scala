@@ -72,6 +72,13 @@ case class CurrencyAndAmount(
     minorUnits: Long
 )
 
+object CurrencyAndAmount {
+  implicit val currencyAndAmountDecoder: Decoder[CurrencyAndAmount] =
+    deriveDecoder
+  implicit val currencyAndAmountEncoder: Encoder[CurrencyAndAmount] =
+    deriveEncoder
+}
+
 case class BatchPaymentDetails(
     batchPaymentUid: UUID,
     batchPaymentType: String
@@ -83,7 +90,7 @@ case class TransactionFeedResponse(
 
 object TransactionFeedResponse {
 
-  //TODO do I need all of these low level encoder/decoders? Test.
+  // TODO do I need all of these low level encoder/decoders? Test.
 
   implicit val uuidDecoder: Decoder[UUID] =
     Decoder.decodeString.emap { s =>
@@ -99,18 +106,57 @@ object TransactionFeedResponse {
         .leftMap(_.getMessage)
     }
   implicit val zonedDateTimeEncoder: Encoder[ZonedDateTime] =
-    Encoder.encodeString.contramap[ZonedDateTime](_.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+    Encoder.encodeString.contramap[ZonedDateTime](
+      _.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    )
 
-  implicit val currencyAndAmountDecoder: Decoder[CurrencyAndAmount] = deriveDecoder
-  implicit val currencyAndAmountEncoder: Encoder[CurrencyAndAmount] = deriveEncoder
+  implicit val batchPaymentDetailsDecoder: Decoder[BatchPaymentDetails] =
+    deriveDecoder
+  implicit val batchPaymentDetailsEncoder: Encoder[BatchPaymentDetails] =
+    deriveEncoder
 
-  implicit val batchPaymentDetailsDecoder: Decoder[BatchPaymentDetails] = deriveDecoder
-  implicit val batchPaymentDetailsEncoder: Encoder[BatchPaymentDetails] = deriveEncoder
+  implicit val transactionFeedItemDecoder: Decoder[TransactionFeedItem] =
+    deriveDecoder
+  implicit val transactionFeedItemEncoder: Encoder[TransactionFeedItem] =
+    deriveEncoder
 
-  implicit val transactionFeedItemDecoder: Decoder[TransactionFeedItem] = deriveDecoder
-  implicit val transactionFeedItemEncoder: Encoder[TransactionFeedItem] = deriveEncoder
-
-  implicit val transactionFeedResponseDecoder: Decoder[TransactionFeedResponse] = deriveDecoder[TransactionFeedResponse]
-  implicit val transactionFeedResponseEncoder: Encoder[TransactionFeedResponse] = deriveEncoder[TransactionFeedResponse]
-  implicit def entityDecoder[F[_]: Concurrent]: EntityDecoder[F, TransactionFeedResponse] = jsonOf[F, TransactionFeedResponse]
+  implicit val transactionFeedResponseDecoder
+      : Decoder[TransactionFeedResponse] =
+    deriveDecoder[TransactionFeedResponse]
+  implicit val transactionFeedResponseEncoder
+      : Encoder[TransactionFeedResponse] =
+    deriveEncoder[TransactionFeedResponse]
+  implicit def entityDecoder[F[_]: Concurrent]
+      : EntityDecoder[F, TransactionFeedResponse] =
+    jsonOf[F, TransactionFeedResponse]
 }
+
+case class SavingsGoal(
+    savingsGoalUid: UUID,
+    name: String,
+    target: CurrencyAndAmount,
+    totalSaved: CurrencyAndAmount,
+    savedPercentage: Int,
+    state: String = "ACTIVE"
+)
+
+object SavingsGoal {
+  implicit val savingsGoalEncoder: Encoder[SavingsGoal] = deriveEncoder
+  implicit val savingsGoalDecoder: Decoder[SavingsGoal] = deriveDecoder
+
+  implicit def entityDecoder[F[_]: Concurrent]: EntityDecoder[F, SavingsGoal] =
+    jsonOf[F, SavingsGoal]
+}
+
+case class SavingsGoalsResponse(
+    savingsGoalList: List[SavingsGoal]
+)
+
+object SavingsGoalsResponse {
+  implicit val savingsGoalsResponseEncoder: Encoder[SavingsGoalsResponse] = deriveEncoder
+  implicit val savingsGoalsResponseDecoder: Decoder[SavingsGoalsResponse] = deriveDecoder
+
+  implicit def entityDecoder[F[_]: Concurrent]: EntityDecoder[F, SavingsGoalsResponse] =
+    jsonOf[F, SavingsGoalsResponse]
+}
+

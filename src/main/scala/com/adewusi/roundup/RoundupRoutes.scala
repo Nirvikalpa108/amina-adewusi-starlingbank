@@ -73,4 +73,16 @@ object RoundupRoutes {
         } yield resp
     }
   }
+
+  def savingsGoalsRoutes[F[_]: Sync](S: SavingsGoals[F]): HttpRoutes[F] = {
+    val dsl = new Http4sDsl[F] {}
+    import dsl._
+    HttpRoutes.of[F] {
+      case GET -> Root / "accounts" / accountUid / "savings-goals" =>
+        for {
+          savingsGoals <- S.getSavingsGoals(accountUid)
+          resp <- Ok(savingsGoals)
+        } yield resp
+    }
+  }
 }
