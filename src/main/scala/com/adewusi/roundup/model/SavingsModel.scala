@@ -18,8 +18,10 @@ case class SavingsGoal(
 )
 
 object SavingsGoal {
-  implicit val savingsGoalEncoder: Encoder[SavingsGoal] = deriveEncoder[SavingsGoal]
-  implicit val savingsGoalDecoder: Decoder[SavingsGoal] = deriveDecoder[SavingsGoal]
+  implicit val savingsGoalEncoder: Encoder[SavingsGoal] =
+    deriveEncoder[SavingsGoal]
+  implicit val savingsGoalDecoder: Decoder[SavingsGoal] =
+    deriveDecoder[SavingsGoal]
 }
 
 case class SavingsGoalsResponse(
@@ -57,28 +59,65 @@ object CreateSavingsGoalRequest {
     jsonOf[F, CreateSavingsGoalRequest]
 }
 
-case class ErrorDetail(
-    message: String
-)
-
-object ErrorDetail {
-  implicit val errorDetailEncoder: Encoder[ErrorDetail] = deriveEncoder[ErrorDetail]
-  implicit val errorDetailDecoder: Decoder[ErrorDetail] = deriveDecoder[ErrorDetail]
-}
-
 case class CreateSavingsGoalResponse(
     savingsGoalUid: UUID,
-    success: Boolean,
-    errors: List[ErrorDetail] = List.empty
+    success: Boolean
 )
 
 object CreateSavingsGoalResponse {
   implicit val createSavingsGoalResponseEncoder
-      : Encoder[CreateSavingsGoalResponse] = deriveEncoder
+      : Encoder[CreateSavingsGoalResponse] =
+    deriveEncoder[CreateSavingsGoalResponse]
   implicit val createSavingsGoalResponseDecoder
-      : Decoder[CreateSavingsGoalResponse] = deriveDecoder
+      : Decoder[CreateSavingsGoalResponse] =
+    deriveDecoder[CreateSavingsGoalResponse]
 
+  implicit def entityEncoder[F[_]]
+      : EntityEncoder[F, CreateSavingsGoalResponse] =
+    jsonEncoderOf[F, CreateSavingsGoalResponse]
   implicit def entityDecoder[F[_]: Concurrent]
       : EntityDecoder[F, CreateSavingsGoalResponse] =
     jsonOf[F, CreateSavingsGoalResponse]
+}
+
+case class AddMoneyRequest(
+    amount: CurrencyAndAmount,
+    reference: Option[String] = None
+) {
+  def validateReference: Either[String, Unit] =
+    reference match {
+      case Some(r) if r.length > 100 => Left("reference length must be <= 100")
+      case _                         => Right(())
+    }
+}
+
+object AddMoneyRequest {
+  implicit val addMoneyRequestDecoder: Decoder[AddMoneyRequest] = deriveDecoder
+  implicit val addMoneyRequestEncoder: Encoder[AddMoneyRequest] = deriveEncoder
+
+  implicit def entityEncoder[F[_]]: EntityEncoder[F, AddMoneyRequest] =
+    jsonEncoderOf[F, AddMoneyRequest]
+
+  implicit def entityDecoder[F[_]: Concurrent]
+      : EntityDecoder[F, AddMoneyRequest] =
+    jsonOf[F, AddMoneyRequest]
+}
+
+case class AddMoneyResponse(
+    transferUid: UUID,
+    success: Boolean
+)
+
+object AddMoneyResponse {
+  implicit val addMoneyResponseDecoder: Decoder[AddMoneyResponse] =
+    deriveDecoder
+  implicit val addMoneyResponseEncoder: Encoder[AddMoneyResponse] =
+    deriveEncoder
+
+  implicit def entityEncoder[F[_]]: EntityEncoder[F, AddMoneyResponse] =
+    jsonEncoderOf[F, AddMoneyResponse]
+
+  implicit def entityDecoder[F[_]: Concurrent]
+      : EntityDecoder[F, AddMoneyResponse] =
+    jsonOf[F, AddMoneyResponse]
 }

@@ -1,14 +1,14 @@
 package com.adewusi.roundup
 
 import cats.effect.IO
-import com.adewusi.roundup.model.{CurrencyAndAmount, SavingsGoal, SavingsGoalsResponse}
+import com.adewusi.roundup.model.{AddMoneyRequest, AddMoneyResponse, CreateSavingsGoalRequest, CreateSavingsGoalResponse, CurrencyAndAmount, SavingsGoal, SavingsGoalsResponse}
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.implicits._
 
 import java.util.UUID
 
-class SavingsGoalsSpec extends CatsEffectSuite {
+class GetSavingsGoalsSpec extends CatsEffectSuite {
 
   private val testAccountUid = "test-account-uid"
   private val testSavingsGoalUid = UUID.randomUUID()
@@ -114,6 +114,10 @@ class SavingsGoalsSpec extends CatsEffectSuite {
       override def getSavingsGoals(accountUid: String): IO[SavingsGoalsResponse] = {
         IO.pure(response)
       }
+
+      override def createSavingsGoal(accountUid: String, request: CreateSavingsGoalRequest): IO[CreateSavingsGoalResponse] = ???
+
+      override def addMoney(accountUid: String, savingsGoalUid: String, transferUid: String, request: AddMoneyRequest): IO[AddMoneyResponse] = ???
     }
   }
 }
