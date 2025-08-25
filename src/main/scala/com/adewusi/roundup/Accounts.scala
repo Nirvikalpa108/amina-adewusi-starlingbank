@@ -1,7 +1,7 @@
 package com.adewusi.roundup
 
 import cats.effect.Concurrent
-import com.adewusi.roundup.model.AccountsResponse
+import com.adewusi.roundup.model.{AccountsResponse, AppConfig}
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec._
@@ -16,16 +16,15 @@ trait Accounts[F[_]] {
 }
 
 object Accounts {
-  val accessToken = "" //TODO get from config
 
-  def impl[F[_]: Concurrent](C: Client[F]): Accounts[F] = new Accounts[F] {
+  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): Accounts[F] = new Accounts[F] {
     val dsl = new Http4sClientDsl[F] {}
     import dsl._
     override def getAccounts(): F[AccountsResponse] = {
       C.expect[AccountsResponse](
         GET(
           uri"https://api-sandbox.starlingbank.com/api/v2/accounts",
-          Authorization(Credentials.Token(AuthScheme.Bearer, accessToken)),
+          Authorization(Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)),
           Header.Raw(ci"Accept", "application/json"),
           Header.Raw(ci"User-Agent", "Adewusi")
         )

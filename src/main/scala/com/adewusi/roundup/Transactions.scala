@@ -1,7 +1,7 @@
 package com.adewusi.roundup
 
 import cats.effect.Concurrent
-import com.adewusi.roundup.model.TransactionFeedResponse
+import com.adewusi.roundup.model.{AppConfig, TransactionFeedResponse}
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec._
@@ -22,9 +22,7 @@ trait Transactions[F[_]] {
 }
 
 object Transactions {
-  val accessToken = "" //TODO get from config
-
-  def impl[F[_]: Concurrent](C: Client[F]): Transactions[F] =
+  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): Transactions[F] =
     new Transactions[F] {
       val dsl = new Http4sClientDsl[F] {}
       import dsl._
@@ -47,7 +45,7 @@ object Transactions {
               )
               .withQueryParam("minTransactionTimestamp", min)
               .withQueryParam("maxTransactionTimestamp", max),
-            Authorization(Credentials.Token(AuthScheme.Bearer, accessToken)),
+            Authorization(Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)),
             Header.Raw(ci"Accept", "application/json"),
             Header.Raw(ci"User-Agent", "Adewusi")
           )

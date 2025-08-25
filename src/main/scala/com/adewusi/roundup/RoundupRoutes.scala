@@ -78,7 +78,7 @@ object RoundupRoutes {
     val dsl = new Http4sDsl[F] {}
     import dsl._
     HttpRoutes.of[F] {
-      case GET -> Root / "accounts" / accountUid / "savings-goals" =>
+      case GET -> Root / "savings-goals" / accountUid =>
         for {
           savingsGoals <- S.getSavingsGoals(accountUid)
           resp <- Ok(savingsGoals)

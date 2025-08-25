@@ -1,7 +1,7 @@
 package com.adewusi.roundup
 
 import cats.effect.Concurrent
-import com.adewusi.roundup.model.SavingsGoalsResponse
+import com.adewusi.roundup.model.{AppConfig, SavingsGoalsResponse}
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.client.Client
@@ -15,9 +15,7 @@ trait SavingsGoals[F[_]] {
 }
 
 object SavingsGoals {
-  val accessToken = "" //TODO get from config
-
-  def impl[F[_]: Concurrent](C: Client[F]): SavingsGoals[F] = new SavingsGoals[F] {
+  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): SavingsGoals[F] = new SavingsGoals[F] {
     val dsl = new Http4sClientDsl[F] {}
     import dsl._
 
@@ -25,7 +23,7 @@ object SavingsGoals {
       C.expect[SavingsGoalsResponse](
         GET(
           uri"https://api-sandbox.starlingbank.com/api/v2/account" / accountUid / "savings-goals",
-          Authorization(Credentials.Token(AuthScheme.Bearer, accessToken)),
+          Authorization(Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)),
           Header.Raw(ci"Accept", "application/json"),
           Header.Raw(ci"User-Agent", "Adewusi")
         )

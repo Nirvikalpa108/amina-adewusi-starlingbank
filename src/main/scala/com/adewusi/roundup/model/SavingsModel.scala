@@ -11,10 +11,10 @@ import java.util.UUID
 case class SavingsGoal(
     savingsGoalUid: UUID,
     name: String,
-    target: CurrencyAndAmount,
+    target: Option[CurrencyAndAmount],
     totalSaved: CurrencyAndAmount,
-    savedPercentage: Int,
-    state: String = "ACTIVE"
+    savedPercentage: Option[Int],
+    state: String
 )
 
 object SavingsGoal {

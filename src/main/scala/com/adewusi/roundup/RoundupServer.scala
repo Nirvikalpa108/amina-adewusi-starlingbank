@@ -2,6 +2,7 @@ package com.adewusi.roundup
 
 import cats.effect.Async
 import cats.syntax.all._
+import com.adewusi.roundup.model.AppConfig
 import com.comcast.ip4s._
 import fs2.io.net.Network
 import org.http4s.ember.client.EmberClientBuilder
@@ -11,14 +12,14 @@ import org.http4s.server.middleware.Logger
 
 object RoundupServer {
 
-  def run[F[_]: Async: Network]: F[Nothing] = {
+  def run[F[_]: Async: Network](config: AppConfig): F[Nothing] = {
     for {
       client <- EmberClientBuilder.default[F].build
       helloWorldAlg = HelloWorld.impl[F]
       jokeAlg = Jokes.impl[F](client)
-      accountsAlg = Accounts.impl[F](client)
-      transactionsAlg = Transactions.impl[F](client)
-      savingsGoalsAlg = SavingsGoals.impl[F](client)
+      accountsAlg = Accounts.impl[F](client, config)
+      transactionsAlg = Transactions.impl[F](client, config)
+      savingsGoalsAlg = SavingsGoals.impl[F](client, config)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you
