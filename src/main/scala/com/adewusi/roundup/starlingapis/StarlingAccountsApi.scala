@@ -1,4 +1,4 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.starlingapis
 
 import cats.effect.Concurrent
 import com.adewusi.roundup.model.{AccountsResponse, AppConfig}
@@ -11,13 +11,13 @@ import org.http4s.headers.Authorization
 import org.http4s.implicits._
 import org.typelevel.ci.CIStringSyntax
 
-trait Accounts[F[_]] {
+trait StarlingAccountsApi[F[_]] {
   def getAccounts(): F[AccountsResponse]
 }
 
-object Accounts {
+object StarlingAccountsApi {
 
-  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): Accounts[F] = new Accounts[F] {
+  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): StarlingAccountsApi[F] = new StarlingAccountsApi[F] {
     val dsl = new Http4sClientDsl[F] {}
     import dsl._
     override def getAccounts(): F[AccountsResponse] = {

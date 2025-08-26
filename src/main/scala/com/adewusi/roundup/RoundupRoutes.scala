@@ -3,6 +3,7 @@ package com.adewusi.roundup
 import cats.effect.{Concurrent, Sync}
 import cats.implicits._
 import com.adewusi.roundup.model._
+import com.adewusi.roundup.starlingapis.{StarlingAccountsApi, StarlingSavingsGoalsApi, StarlingTransactionApi}
 import org.http4s.HttpRoutes
 import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dsl.Http4sDsl
@@ -33,7 +34,7 @@ object RoundupRoutes {
     }
   }
 
-  def accountsRoutes[F[_]: Sync](A: Accounts[F]): HttpRoutes[F] = {
+  def accountsRoutes[F[_]: Sync](A: StarlingAccountsApi[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
     HttpRoutes.of[F] { case GET -> Root / "accounts" =>
@@ -54,7 +55,7 @@ object RoundupRoutes {
     }
   }
 
-  def transactionsRoutes[F[_]: Sync](T: Transactions[F]): HttpRoutes[F] = {
+  def transactionsRoutes[F[_]: Sync](T: StarlingTransactionApi[F]): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._
 
@@ -82,7 +83,7 @@ object RoundupRoutes {
   }
 
   def savingsGoalsRoutes[F[_]: Concurrent](
-      S: SavingsGoals[F]
+      S: StarlingSavingsGoalsApi[F]
   ): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F] {}
     import dsl._

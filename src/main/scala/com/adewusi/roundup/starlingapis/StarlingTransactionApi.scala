@@ -1,4 +1,4 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.starlingapis
 
 import cats.effect.Concurrent
 import com.adewusi.roundup.model.{AppConfig, TransactionFeedResponse}
@@ -13,7 +13,7 @@ import org.typelevel.ci.CIStringSyntax
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-trait Transactions[F[_]] {
+trait StarlingTransactionApi[F[_]] {
   def getSettledTransactionsBetween(
       accountUid: String,
       minTransactionTimestamp: ZonedDateTime,
@@ -21,9 +21,9 @@ trait Transactions[F[_]] {
   ): F[TransactionFeedResponse]
 }
 
-object Transactions {
-  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): Transactions[F] =
-    new Transactions[F] {
+object StarlingTransactionApi {
+  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): StarlingTransactionApi[F] =
+    new StarlingTransactionApi[F] {
       val dsl = new Http4sClientDsl[F] {}
       import dsl._
 

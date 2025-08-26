@@ -2,13 +2,14 @@ package com.adewusi.roundup
 
 import cats.effect.IO
 import com.adewusi.roundup.model.{AddMoneyRequest, AddMoneyResponse, CreateSavingsGoalRequest, CreateSavingsGoalResponse, CurrencyAndAmount, SavingsGoal, SavingsGoalsResponse}
+import com.adewusi.roundup.starlingapis.StarlingSavingsGoalsApi
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.implicits._
 
 import java.util.UUID
 
-class GetSavingsGoalsSpec extends CatsEffectSuite {
+class StarlingSavingsGoalsApiGetSpec extends CatsEffectSuite {
 
   private val testAccountUid = "test-account-uid"
   private val testSavingsGoalUid = UUID.randomUUID()
@@ -109,8 +110,8 @@ class GetSavingsGoalsSpec extends CatsEffectSuite {
     RoundupRoutes.savingsGoalsRoutes(mockSavingsGoals).orNotFound(request)
   }
 
-  private def createMockSavingsGoals(response: SavingsGoalsResponse): SavingsGoals[IO] = {
-    new SavingsGoals[IO] {
+  private def createMockSavingsGoals(response: SavingsGoalsResponse): StarlingSavingsGoalsApi[IO] = {
+    new StarlingSavingsGoalsApi[IO] {
       override def getSavingsGoals(accountUid: String): IO[SavingsGoalsResponse] = {
         IO.pure(response)
       }

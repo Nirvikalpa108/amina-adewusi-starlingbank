@@ -3,6 +3,7 @@ package com.adewusi.roundup
 import cats.effect.Async
 import cats.syntax.all._
 import com.adewusi.roundup.model.AppConfig
+import com.adewusi.roundup.starlingapis.{StarlingAccountsApi, StarlingSavingsGoalsApi, StarlingTransactionApi}
 import com.comcast.ip4s._
 import fs2.io.net.Network
 import org.http4s.ember.client.EmberClientBuilder
@@ -17,9 +18,9 @@ object RoundupServer {
       client <- EmberClientBuilder.default[F].build
       helloWorldAlg = HelloWorld.impl[F]
       jokeAlg = Jokes.impl[F](client)
-      accountsAlg = Accounts.impl[F](client, config)
-      transactionsAlg = Transactions.impl[F](client, config)
-      savingsGoalsAlg = SavingsGoals.impl[F](client, config)
+      accountsAlg = StarlingAccountsApi.impl[F](client, config)
+      transactionsAlg = StarlingTransactionApi.impl[F](client, config)
+      savingsGoalsAlg = StarlingSavingsGoalsApi.impl[F](client, config)
 
       // Combine Service Routes into an HttpApp.
       // Can also be done via a Router if you

@@ -1,7 +1,7 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.starlingapis
 
 import cats.effect.Concurrent
-import com.adewusi.roundup.model.{AddMoneyRequest, AddMoneyResponse, AppConfig, CreateSavingsGoalRequest, CreateSavingsGoalResponse, SavingsGoalsResponse}
+import com.adewusi.roundup.model._
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.client.Client
@@ -10,14 +10,14 @@ import org.http4s.headers.Authorization
 import org.http4s.implicits._
 import org.typelevel.ci.CIStringSyntax
 
-trait SavingsGoals[F[_]] {
+trait StarlingSavingsGoalsApi[F[_]] {
   def getSavingsGoals(accountUid: String): F[SavingsGoalsResponse]
   def createSavingsGoal(accountUid: String, request: CreateSavingsGoalRequest): F[CreateSavingsGoalResponse]
   def addMoney(accountUid: String, savingsGoalUid: String, transferUid: String, request: AddMoneyRequest): F[AddMoneyResponse]
 }
 
-object SavingsGoals {
-  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): SavingsGoals[F] = new SavingsGoals[F] {
+object StarlingSavingsGoalsApi {
+  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): StarlingSavingsGoalsApi[F] = new StarlingSavingsGoalsApi[F] {
     val dsl = new Http4sClientDsl[F] {}
     import dsl._
 

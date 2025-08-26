@@ -4,12 +4,13 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.implicits._
+
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-
 import com.adewusi.roundup.model.TransactionFeedResponse
+import com.adewusi.roundup.starlingapis.StarlingTransactionApi
 
-class TransactionsRoutesSpec extends CatsEffectSuite {
+class StarlingTransactionApiRoutesSpec extends CatsEffectSuite {
 
   private val sampleTxFeedResp: TransactionFeedResponse =
     TransactionFeedResponse(feedItems = List.empty)
@@ -55,7 +56,7 @@ class TransactionsRoutesSpec extends CatsEffectSuite {
         .withQueryParam("maxTransactionTimestamp", maxStr)
     )
 
-    val transactions = new Transactions[IO] {
+    val transactions = new StarlingTransactionApi[IO] {
       override def getSettledTransactionsBetween(
           accountUid: String,
           minTransactionTimestamp: ZonedDateTime,
@@ -75,7 +76,7 @@ class TransactionsRoutesSpec extends CatsEffectSuite {
         .withQueryParam("maxTransactionTimestamp", "2023-08-08T23:59:59Z")
     )
 
-    val transactions = new Transactions[IO] {
+    val transactions = new StarlingTransactionApi[IO] {
       override def getSettledTransactionsBetween(
           accountUid: String,
           minTransactionTimestamp: ZonedDateTime,
@@ -94,7 +95,7 @@ class TransactionsRoutesSpec extends CatsEffectSuite {
       // Missing query parameters
     )
 
-    val transactions = new Transactions[IO] {
+    val transactions = new StarlingTransactionApi[IO] {
       override def getSettledTransactionsBetween(
           accountUid: String,
           minTransactionTimestamp: ZonedDateTime,

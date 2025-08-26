@@ -4,10 +4,10 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.implicits._
-
 import com.adewusi.roundup.model.{Account, AccountsResponse}
+import com.adewusi.roundup.starlingapis.StarlingAccountsApi
 
-class AccountsRoutesSpec extends CatsEffectSuite {
+class StarlingAccountsApiRoutesSpec extends CatsEffectSuite {
 
   private val sampleAccountsResp: AccountsResponse = AccountsResponse(
     accounts = List(
@@ -40,7 +40,7 @@ class AccountsRoutesSpec extends CatsEffectSuite {
 
   private[this] val retAccountsSuccess: IO[Response[IO]] = {
     val req = Request[IO](Method.GET, uri"/accounts")
-    val accounts = new Accounts[IO] {
+    val accounts = new StarlingAccountsApi[IO] {
       override def getAccounts(): IO[AccountsResponse] = IO.pure(sampleAccountsResp)
     }
     RoundupRoutes.accountsRoutes[IO](accounts).orNotFound(req)
@@ -48,7 +48,7 @@ class AccountsRoutesSpec extends CatsEffectSuite {
 
   private[this] val retAccountsError: IO[Response[IO]] = {
     val req = Request[IO](Method.GET, uri"/accounts")
-    val accounts = new Accounts[IO] {
+    val accounts = new StarlingAccountsApi[IO] {
       override def getAccounts(): IO[AccountsResponse] =
         IO.raiseError(new RuntimeException("failure"))
     }

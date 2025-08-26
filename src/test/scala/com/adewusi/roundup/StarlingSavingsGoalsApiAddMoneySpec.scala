@@ -5,11 +5,12 @@ import org.http4s._
 import org.http4s.implicits._
 import munit.CatsEffectSuite
 import com.adewusi.roundup.model._
+import com.adewusi.roundup.starlingapis.StarlingSavingsGoalsApi
 import org.http4s.headers.`Content-Type`
 
 import java.util.UUID
 
-class SavingsGoalsAddMoneySpec extends CatsEffectSuite {
+class StarlingSavingsGoalsApiAddMoneySpec extends CatsEffectSuite {
 
   private val accountUid = "acc-123"
   private val savingsGoalUid = "sg-456"
@@ -63,7 +64,7 @@ class SavingsGoalsAddMoneySpec extends CatsEffectSuite {
   }
 
   test("addMoney returns status code 500 for service error") {
-    val errorService = new SavingsGoals[IO] {
+    val errorService = new StarlingSavingsGoalsApi[IO] {
       override def getSavingsGoals(
           accountUid: String
       ): IO[SavingsGoalsResponse] =
@@ -113,7 +114,7 @@ class SavingsGoalsAddMoneySpec extends CatsEffectSuite {
   }
 
   private val fakeSavingsGoalsRoutes = {
-    val fakeSavingsGoals = new SavingsGoals[IO] {
+    val fakeSavingsGoals = new StarlingSavingsGoalsApi[IO] {
       override def getSavingsGoals(
           accountUid: String
       ): IO[SavingsGoalsResponse] = ???
