@@ -24,12 +24,8 @@ object Roundup {
       accounts <- EitherT(accountClient.fetchAccounts)
       account <- EitherT.fromEither(accountSelector.getCorrectAccount(accounts))
       transactions <- EitherT(transactionClient.fetchTransactions(account, startDate))
-      validatedTransactions <- EitherT.fromEither(
-        transactionValidator.validateTransactions(transactions)
-      )
-      roundup <- EitherT.fromEither(
-        transactionValidator.validateRoundupAmount(validatedTransactions)
-      )
+      validatedTransactions <- EitherT.fromEither(transactionValidator.validateTransactions(transactions))
+      roundup <- EitherT.fromEither(transactionValidator.validateRoundupAmount(validatedTransactions))
       goal <- EitherT(
         savingsGoalClient.fetchOrCreateSavingsGoal(config, savingsGoalId)
       )
@@ -79,11 +75,3 @@ trait IdempotencyClient[F[_]] {
   ): F[Either[AppError, Unit]]
 }
 
-trait TransactionValidator {
-  def validateTransactions(
-      transactions: List[TransactionFeedItem]
-  ): Either[AppError, List[TransactionFeedItem]]
-  def validateRoundupAmount(
-      transactions: List[TransactionFeedItem]
-  ): Either[AppError, Long]
-}
