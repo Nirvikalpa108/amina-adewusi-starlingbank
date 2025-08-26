@@ -89,10 +89,6 @@ trait IdempotencyClient[F[_]] {
   ): F[Either[AppError, Unit]]
 }
 
-trait AccountSelector {
-  def getCorrectAccount(accounts: List[Account]): Either[AppError, Account]
-}
-
 trait TransactionValidator {
   def validateTransactions(
       transactions: List[TransactionFeedItem]

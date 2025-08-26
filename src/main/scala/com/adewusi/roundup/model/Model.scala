@@ -30,6 +30,7 @@ sealed trait InfraError extends AppError
 
 case object NoTransactions extends DomainError
 case object ZeroRoundupAmount extends DomainError
+case object NoAccount extends DomainError
 final case class AlreadyTransferred(reason: String) extends DomainError
 
 final case class NotFoundError(reason: String) extends InfraError
