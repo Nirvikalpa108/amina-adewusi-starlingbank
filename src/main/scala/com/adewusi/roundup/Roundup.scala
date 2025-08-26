@@ -23,9 +23,7 @@ object Roundup {
     for {
       accounts <- EitherT(accountClient.fetchAccounts)
       account <- EitherT.fromEither(accountSelector.getCorrectAccount(accounts))
-      transactions <- EitherT(
-        transactionClient.fetchTransactions(config, account, startDate)
-      )
+      transactions <- EitherT(transactionClient.fetchTransactions(account, startDate))
       validatedTransactions <- EitherT.fromEither(
         transactionValidator.validateTransactions(transactions)
       )
@@ -53,14 +51,6 @@ object Roundup {
       )
     } yield ()
   }
-}
-
-trait TransactionClient[F[_]] {
-  def fetchTransactions(
-      config: AppConfig,
-      account: Account,
-      startDate: LocalDate
-  ): F[Either[AppError, List[TransactionFeedItem]]]
 }
 
 trait SavingsGoalClient[F[_]] {

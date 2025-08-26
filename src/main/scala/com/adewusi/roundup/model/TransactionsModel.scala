@@ -16,22 +16,32 @@ case class TransactionFeedItem(
     categoryUid: UUID,
     amount: CurrencyAndAmount,
     sourceAmount: CurrencyAndAmount,
-    direction: String, // IN or OUT
+    direction: String,
     updatedAt: ZonedDateTime,
     transactionTime: ZonedDateTime,
     settlementTime: Option[ZonedDateTime],
+    retryAllocationUntilTime: Option[ZonedDateTime],
     source: String,
-    status: String, // UPCOMING, PENDING, REVERSED, SETTLED, DECLINED, REFUNDED, RETRYING, ACCOUNT_CHECK
+    sourceSubType: Option[String],
+    status: String,
+    transactingApplicationUserUid: Option[UUID],
     counterPartyType: String,
+    counterPartyUid: Option[UUID],
     counterPartyName: Option[String],
+    counterPartySubEntityUid: Option[UUID],
     counterPartySubEntityName: Option[String],
     counterPartySubEntityIdentifier: Option[String],
     counterPartySubEntitySubIdentifier: Option[String],
+    exchangeRate: Option[BigDecimal],
+    totalFees: Option[BigDecimal],
+    totalFeeAmount: Option[CurrencyAndAmount],
     reference: Option[String],
     country: String,
     spendingCategory: String,
-    hasAttachment: Boolean,
-    hasReceipt: Boolean,
+    userNote: Option[String],
+    roundUp: Option[AssociatedFeedRoundUp],
+    hasAttachment: Option[Boolean],
+    hasReceipt: Option[Boolean],
     batchPaymentDetails: Option[BatchPaymentDetails]
 )
 
@@ -69,8 +79,22 @@ case class BatchPaymentDetails(
 )
 
 object BatchPaymentDetails {
-  implicit val batchPaymentDetailsEncoder: Encoder[BatchPaymentDetails] = deriveEncoder[BatchPaymentDetails]
-  implicit val batchPaymentDetailsDecoder: Decoder[BatchPaymentDetails] = deriveDecoder[BatchPaymentDetails]
+  implicit val batchPaymentDetailsEncoder: Encoder[BatchPaymentDetails] =
+    deriveEncoder[BatchPaymentDetails]
+  implicit val batchPaymentDetailsDecoder: Decoder[BatchPaymentDetails] =
+    deriveDecoder[BatchPaymentDetails]
+}
+
+case class AssociatedFeedRoundUp(
+    goalCategoryUid: UUID,
+    amount: CurrencyAndAmount
+)
+
+object AssociatedFeedRoundUp {
+  implicit val associatedFeedRoundUpDecoder: Decoder[AssociatedFeedRoundUp] =
+    deriveDecoder[AssociatedFeedRoundUp]
+  implicit val associatedFeedRoundUpEncoder: Encoder[AssociatedFeedRoundUp] =
+    deriveEncoder[AssociatedFeedRoundUp]
 }
 
 case class TransactionFeedResponse(
