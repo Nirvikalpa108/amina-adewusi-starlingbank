@@ -3,23 +3,10 @@ package com.adewusi.roundup
 import cats.data.EitherT
 import cats.effect.Sync
 import com.adewusi.roundup.model._
-
 import java.time.LocalDate
 import java.util.UUID
 
 object Roundup {
-
-  //TODO move to model
-  sealed trait AppError
-  sealed trait DomainError extends AppError
-  sealed trait InfraError extends AppError
-
-  case object NoTransactions extends DomainError
-  case object ZeroRoundupAmount extends DomainError
-  final case class AlreadyTransferred(reason: String) extends DomainError
-
-  final case class NotFoundError(reason: String) extends InfraError
-  final case class TransferError(reason: String) extends InfraError
 
   def processRoundups[F[_]: Sync](startDate: LocalDate, config: AppConfig, savingsGoalId: Option[UUID]): EitherT[F, AppError, Unit] = {
     for {
@@ -47,4 +34,31 @@ object Roundup {
   def checkIdempotency[F[_]: Sync](goal: SavingsGoal, startDate: LocalDate, amountMinorUnits: Long): EitherT[F, AppError, Boolean] = ???
   def transferToSavingsGoal[F[_]: Sync](config: AppConfig, goal: SavingsGoal, amountMinorUnits: Long): EitherT[F, AppError, AddMoneyResponse] = ???
   def recordTransfer[F[_]: Sync](goal: SavingsGoal, startDate: LocalDate, amountMinorUnits: Long, transfer: AddMoneyResponse): EitherT[F, AppError, Unit] = ???
+}
+
+trait AccountClient[F[_]] {
+  def fetchAccounts(config: AppConfig): F[Either[AppError, List[Account]]]
+}
+
+trait TransactionClient[F[_]] {
+  def fetchTransactions(config: AppConfig, account: Account, startDate: LocalDate): F[Either[AppError, List[TransactionFeedItem]]]
+}
+
+trait SavingsGoalClient[F[_]] {
+  def fetchOrCreateSavingsGoal(config: AppConfig, maybeGoal: Option[UUID]): F[Either[AppError, SavingsGoal]]
+  def transferToSavingsGoal(config: AppConfig, goal: SavingsGoal, amountMinorUnits: Long): F[Either[AppError, AddMoneyResponse]]
+}
+
+trait IdempotencyClient[F[_]] {
+  def checkIdempotency(goal: SavingsGoal, startDate: LocalDate, amountMinorUnits: Long): F[Either[AppError, Boolean]]
+  def recordTransfer(goal: SavingsGoal, startDate: LocalDate, amountMinorUnits: Long, transfer: AddMoneyResponse): F[Either[AppError, Unit]]
+}
+
+trait AccountSelector {
+  def getCorrectAccount(accounts: List[Account]): Either[AppError, Account]
+}
+
+trait TransactionValidator {
+  def validateTransactions(transactions: List[TransactionFeedItem]): Either[AppError, List[TransactionFeedItem]]
+  def validateRoundupAmount(transactions: List[TransactionFeedItem]): Either[AppError, Long]
 }

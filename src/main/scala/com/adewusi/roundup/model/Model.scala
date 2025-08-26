@@ -23,3 +23,19 @@ object CurrencyAndAmount {
   implicit val currencyAndAmountEncoder: Encoder[CurrencyAndAmount] =
     deriveEncoder
 }
+
+sealed trait AppError
+
+sealed trait DomainError extends AppError
+
+sealed trait InfraError extends AppError
+
+case object NoTransactions extends DomainError
+
+case object ZeroRoundupAmount extends DomainError
+
+final case class AlreadyTransferred(reason: String) extends DomainError
+
+final case class NotFoundError(reason: String) extends InfraError
+
+final case class TransferError(reason: String) extends InfraError
