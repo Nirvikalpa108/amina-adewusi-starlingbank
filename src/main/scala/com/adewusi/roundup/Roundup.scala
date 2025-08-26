@@ -26,9 +26,7 @@ object Roundup {
       transactions <- EitherT(transactionClient.fetchTransactions(account, startDate))
       validatedTransactions <- EitherT.fromEither(transactionValidator.validateTransactions(transactions))
       roundup <- EitherT.fromEither(transactionValidator.validateRoundupAmount(validatedTransactions))
-      goal <- EitherT(
-        savingsGoalClient.fetchOrCreateSavingsGoal(config, savingsGoalId)
-      )
+      goal <- EitherT(savingsGoalClient.fetchOrCreateSavingsGoal(config, savingsGoalId))
       // NOTE: In production, idempotency + recording should be atomic to avoid race conditions.
       // This test assumes single-instance execution.
       needsProcessing <- EitherT(
@@ -39,26 +37,12 @@ object Roundup {
         (),
         AlreadyTransferred(s"Roundup for $startDate already processed")
       )
-      transfer <- EitherT(
-        savingsGoalClient.transferToSavingsGoal(config, goal, roundup)
-      )
+      transfer <- EitherT(savingsGoalClient.transferToSavingsGoal(config, goal, roundup))
       _ <- EitherT(
         idempotencyService.recordTransfer(goal, startDate, roundup, transfer)
       )
     } yield ()
   }
-}
-
-trait SavingsGoalClient[F[_]] {
-  def fetchOrCreateSavingsGoal(
-      config: AppConfig,
-      maybeGoal: Option[UUID]
-  ): F[Either[AppError, SavingsGoal]]
-  def transferToSavingsGoal(
-      config: AppConfig,
-      goal: SavingsGoal,
-      amountMinorUnits: Long
-  ): F[Either[AppError, AddMoneyResponse]]
 }
 
 trait IdempotencyClient[F[_]] {
