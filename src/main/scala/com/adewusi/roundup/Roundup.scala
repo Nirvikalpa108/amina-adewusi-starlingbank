@@ -11,36 +11,40 @@ object Roundup {
 
   //TODO move to model
   sealed trait AppError
-  case class ParseDateError(reason: String) extends AppError
-  case class NotFoundError(reason: String) extends AppError
-  case class TransferError(reason: String) extends AppError
-  case object NoTransactions extends AppError
-  case class AlreadyTransferred(reason: String) extends AppError
-  case class GenericError(reason: String) extends AppError
+  sealed trait DomainError extends AppError
+  sealed trait InfraError extends AppError
+
+  case object NoTransactions extends DomainError
+  case object ZeroRoundupAmount extends DomainError
+  final case class AlreadyTransferred(reason: String) extends DomainError
+
+  final case class NotFoundError(reason: String) extends InfraError
+  final case class TransferError(reason: String) extends InfraError
 
   def processRoundups[F[_]: Sync](startDate: LocalDate, config: AppConfig, savingsGoalId: Option[UUID]): EitherT[F, AppError, Unit] = {
     for {
       accounts <- fetchAccounts[F](config)
       account <- EitherT.fromEither[F](getCorrectAccount(accounts))
-      txs <- fetchTransactions[F](config, account, startDate)
-      filtered = filterTransactions(txs)
-      roundup = computeRoundupTotal(filtered)
+      transactions <- fetchTransactions[F](config, account, startDate)
+      validatedTransactions  <- EitherT.fromEither[F](validateTransactions(transactions))
+      roundup   <- EitherT.fromEither[F](validateRoundupAmount(validatedTransactions))
       goal <- fetchOrCreateSavingsGoal[F](config, savingsGoalId)
-      already <- checkIdempotency[F](goal, startDate, roundup)
-      _ <- if (already) EitherT.leftT[F, Unit](AlreadyTransferred("Transfer already recorded"))
-      else EitherT.rightT[F, AppError](())
+      // NOTE: In production, idempotency + recording should be atomic to avoid race conditions.
+      // This test assumes single-instance execution.
+      needsProcessing <- checkIdempotency[F](goal, startDate, roundup)
+      _ <- EitherT.cond[F](needsProcessing, (), AlreadyTransferred(s"Roundup for $startDate already processed"))
       transfer <- transferToSavingsGoal[F](config, goal, roundup)
-      _ <- appendTransferRecord[F](goal, startDate, roundup, transfer)
+      _ <- recordTransfer[F](goal, startDate, roundup, transfer)
     } yield ()
   }
 
   def fetchAccounts[F[_] : Sync](config: AppConfig): EitherT[F, AppError, List[Account]] = ???
   def getCorrectAccount(accounts: List[Account]): Either[AppError, Account] = ???
   def fetchTransactions[F[_]: Sync](config: AppConfig, account: Account, startDate: LocalDate): EitherT[F, AppError, List[TransactionFeedItem]] = ???
-  def filterTransactions(transactions: List[TransactionFeedItem]): List[TransactionFeedItem] = ???
-  def computeRoundupTotal(transactions: List[TransactionFeedItem]): Long = ???
+  def validateTransactions(transactions: List[TransactionFeedItem]): Either[AppError, List[TransactionFeedItem]] = ???
+  def validateRoundupAmount(transactions: List[TransactionFeedItem]): Either[AppError, Long] = ???
   def fetchOrCreateSavingsGoal[F[_]: Sync](config: AppConfig, maybeGoal: Option[UUID]): EitherT[F, AppError, SavingsGoal] = ???
   def checkIdempotency[F[_]: Sync](goal: SavingsGoal, startDate: LocalDate, amountMinorUnits: Long): EitherT[F, AppError, Boolean] = ???
   def transferToSavingsGoal[F[_]: Sync](config: AppConfig, goal: SavingsGoal, amountMinorUnits: Long): EitherT[F, AppError, AddMoneyResponse] = ???
-  def appendTransferRecord[F[_]: Sync](goal: SavingsGoal, startDate: LocalDate, amountMinorUnits: Long, transfer: AddMoneyResponse): EitherT[F, AppError, Unit] = ???
+  def recordTransfer[F[_]: Sync](goal: SavingsGoal, startDate: LocalDate, amountMinorUnits: Long, transfer: AddMoneyResponse): EitherT[F, AppError, Unit] = ???
 }
