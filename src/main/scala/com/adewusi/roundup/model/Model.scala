@@ -5,7 +5,8 @@ import io.circe.{Decoder, Encoder}
 
 case class StarlingConfig(
     accessToken: String,
-    baseUrl: String
+    baseUrl: String,
+    goalFilePath: String
 )
 
 case class AppConfig(
@@ -31,8 +32,11 @@ sealed trait InfraError extends AppError
 case object NoTransactions extends DomainError
 case object ZeroRoundupAmount extends DomainError
 case object NoAccount extends DomainError
+final case class InvalidStoredSavingsGoalUuid(reason: String) extends DomainError
 final case class AlreadyTransferred(reason: String) extends DomainError
 
 final case class NotFoundError(reason: String) extends InfraError
 final case class TransferError(reason: String) extends InfraError
 final case class GenericError(reason: String) extends InfraError
+final case class FileReadError(reason: String) extends InfraError
+final case class FileWriteError(reason: String) extends InfraError
