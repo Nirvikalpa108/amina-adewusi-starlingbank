@@ -7,12 +7,14 @@ import org.http4s.implicits._
 import com.adewusi.roundup.model.{Account, AccountsResponse}
 import com.adewusi.roundup.starlingapis.StarlingAccountsApi
 
+import java.util.UUID
+
 class StarlingAccountsApiRoutesSpec extends CatsEffectSuite {
 
   private val sampleAccountsResp: AccountsResponse = AccountsResponse(
     accounts = List(
       Account(
-        accountUid = "f2ca1bb6-c7e4-4e77-b0c4-e63c5c5e5e5e",
+        accountUid = UUID.fromString("f2ca1bb6-c7e4-4e77-b0c4-e63c5c5e5e5e"),
         accountType = "PRIMARY",
         defaultCategory = "b2ca1bb6-c7e4-4e77-b0c4-e63c5c5e5e5e",
         currency = "GBP",

@@ -10,6 +10,8 @@ import java.time.format.DateTimeFormatter
 import com.adewusi.roundup.model.TransactionFeedResponse
 import com.adewusi.roundup.starlingapis.StarlingTransactionApi
 
+import java.util.UUID
+
 class StarlingTransactionApiRoutesSpec extends CatsEffectSuite {
 
   private val sampleTxFeedResp: TransactionFeedResponse =
@@ -51,14 +53,14 @@ class StarlingTransactionApiRoutesSpec extends CatsEffectSuite {
     val maxStr = maxTs.format(fmt)
     val req = Request[IO](
       Method.GET,
-      uri"/feed/account/test-account-uid/settled-transactions-between"
+      uri"/feed/account/85A33967-C9C7-4803-97FF-36EDE76343FA/settled-transactions-between"
         .withQueryParam("minTransactionTimestamp", minStr)
         .withQueryParam("maxTransactionTimestamp", maxStr)
     )
 
     val transactions = new StarlingTransactionApi[IO] {
       override def getSettledTransactionsBetween(
-          accountUid: String,
+          accountUid: UUID,
           minTransactionTimestamp: ZonedDateTime,
           maxTransactionTimestamp: ZonedDateTime
       ): IO[TransactionFeedResponse] =
@@ -71,14 +73,14 @@ class StarlingTransactionApiRoutesSpec extends CatsEffectSuite {
   private[this] val retTransactionsInvalidTimestamp: IO[Response[IO]] = {
     val req = Request[IO](
       Method.GET,
-      uri"/feed/account/test-account-uid/settled-transactions-between"
+      uri"/feed/account/85A33967-C9C7-4803-97FF-36EDE76343FA/settled-transactions-between"
         .withQueryParam("minTransactionTimestamp", "invalid-timestamp")
         .withQueryParam("maxTransactionTimestamp", "2023-08-08T23:59:59Z")
     )
 
     val transactions = new StarlingTransactionApi[IO] {
       override def getSettledTransactionsBetween(
-          accountUid: String,
+          accountUid: UUID,
           minTransactionTimestamp: ZonedDateTime,
           maxTransactionTimestamp: ZonedDateTime
       ): IO[TransactionFeedResponse] =
@@ -91,13 +93,13 @@ class StarlingTransactionApiRoutesSpec extends CatsEffectSuite {
   private[this] val retTransactionsMissingParams: IO[Response[IO]] = {
     val req = Request[IO](
       Method.GET,
-      uri"/feed/account/test-account-uid/settled-transactions-between"
+      uri"/feed/account/85A33967-C9C7-4803-97FF-36EDE76343FA/settled-transactions-between"
       // Missing query parameters
     )
 
     val transactions = new StarlingTransactionApi[IO] {
       override def getSettledTransactionsBetween(
-          accountUid: String,
+          accountUid: UUID,
           minTransactionTimestamp: ZonedDateTime,
           maxTransactionTimestamp: ZonedDateTime
       ): IO[TransactionFeedResponse] =

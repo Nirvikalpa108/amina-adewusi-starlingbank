@@ -12,23 +12,27 @@ import org.typelevel.ci.CIStringSyntax
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.UUID
 
 trait StarlingTransactionApi[F[_]] {
   def getSettledTransactionsBetween(
-      accountUid: String,
+      accountUid: UUID,
       minTransactionTimestamp: ZonedDateTime,
       maxTransactionTimestamp: ZonedDateTime
   ): F[TransactionFeedResponse]
 }
 
 object StarlingTransactionApi {
-  def impl[F[_]: Concurrent](C: Client[F], config: AppConfig): StarlingTransactionApi[F] =
+  def impl[F[_]: Concurrent](
+      C: Client[F],
+      config: AppConfig
+  ): StarlingTransactionApi[F] =
     new StarlingTransactionApi[F] {
       val dsl = new Http4sClientDsl[F] {}
       import dsl._
 
       override def getSettledTransactionsBetween(
-          accountUid: String,
+          accountUid: UUID,
           minTransactionTimestamp: ZonedDateTime,
           maxTransactionTimestamp: ZonedDateTime
       ): F[TransactionFeedResponse] = {
@@ -45,7 +49,9 @@ object StarlingTransactionApi {
               )
               .withQueryParam("minTransactionTimestamp", min)
               .withQueryParam("maxTransactionTimestamp", max),
-            Authorization(Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)),
+            Authorization(
+              Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)
+            ),
             Header.Raw(ci"Accept", "application/json"),
             Header.Raw(ci"User-Agent", "Adewusi")
           )

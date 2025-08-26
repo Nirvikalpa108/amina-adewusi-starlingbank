@@ -10,7 +10,7 @@ import java.util.UUID
 
 class TransactionClientSpec extends CatsEffectSuite {
 
-  val testAccountUid = "11111111-1111-1111-1111-111111111111"
+  val testAccountUid = UUID.fromString("11111111-1111-1111-1111-111111111111")
   val testAccount: Account = Account(
     accountUid = testAccountUid,
     accountType = "PRIMARY",
@@ -59,19 +59,35 @@ class TransactionClientSpec extends CatsEffectSuite {
     batchPaymentDetails = None
   )
 
-  test("fetchTransactions returns Right with transactions when API succeeds") {
-    val mockApi = new StarlingTransactionApi[IO] {
+  private def createMockApi(
+      response: IO[TransactionFeedResponse] =
+        IO.pure(TransactionFeedResponse(List.empty)),
+      accountUidAssertion: UUID => Unit = _ => (),
+      dateRangeAssertion: (ZonedDateTime, ZonedDateTime) => Unit = (_, _) => ()
+  ): StarlingTransactionApi[IO] = {
+    new StarlingTransactionApi[IO] {
       def getSettledTransactionsBetween(
-          accountUid: String,
+          accountUid: UUID,
           minTransactionTimestamp: ZonedDateTime,
           maxTransactionTimestamp: ZonedDateTime
       ): IO[TransactionFeedResponse] = {
-        assertEquals(accountUid, testAccountUid)
-        assertEquals(minTransactionTimestamp, expectedStartUtc)
-        assertEquals(maxTransactionTimestamp, expectedEndUtc)
-        IO.pure(TransactionFeedResponse(List(sampleTransaction)))
+        accountUidAssertion(accountUid)
+        dateRangeAssertion(minTransactionTimestamp, maxTransactionTimestamp)
+        response
       }
     }
+  }
+
+  test("fetchTransactions returns Right with transactions when API succeeds") {
+    val mockApi = createMockApi(
+      response = IO.pure(TransactionFeedResponse(List(sampleTransaction))),
+      accountUidAssertion =
+        accountUid => assertEquals(accountUid, testAccountUid),
+      dateRangeAssertion = (min, max) => {
+        assertEquals(min, expectedStartUtc)
+        assertEquals(max, expectedEndUtc)
+      }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
 
@@ -84,15 +100,7 @@ class TransactionClientSpec extends CatsEffectSuite {
   test(
     "fetchTransactions returns Right with empty list when API returns empty response"
   ) {
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          b: ZonedDateTime,
-          c: ZonedDateTime
-      ) =
-        IO.pure(TransactionFeedResponse(List.empty))
-    }
-
+    val mockApi = createMockApi()
     val client = TransactionClient.impl[IO](mockApi)
 
     assertIO(
@@ -110,14 +118,10 @@ class TransactionClientSpec extends CatsEffectSuite {
       counterPartyName = Some("Sainsbury's")
     )
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          b: ZonedDateTime,
-          c: ZonedDateTime
-      ) =
+    val mockApi = createMockApi(
+      response =
         IO.pure(TransactionFeedResponse(List(sampleTransaction, transaction2)))
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
 
@@ -129,16 +133,7 @@ class TransactionClientSpec extends CatsEffectSuite {
 
   test("fetchTransactions returns Left with GenericError when API fails") {
     val apiError = new RuntimeException("Network timeout")
-
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          b: ZonedDateTime,
-          c: ZonedDateTime
-      ) =
-        IO.raiseError(apiError)
-    }
-
+    val mockApi = createMockApi(response = IO.raiseError(apiError))
     val client = TransactionClient.impl[IO](mockApi)
 
     assertIO(
@@ -148,17 +143,12 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions calculates correct 7-day date range in UTC") {
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStartUtc)
         assertEquals(max, expectedEndUtc)
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
 
@@ -169,19 +159,12 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions passes correct account UID to API") {
-    val differentUid = "22222222-2222-2222-2222-222222222222"
+    val differentUid = UUID.fromString("22222222-2222-2222-2222-222222222222")
     val differentAccount = testAccount.copy(accountUid = differentUid)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          accountUid: String,
-          b: ZonedDateTime,
-          c: ZonedDateTime
-      ) = {
-        assertEquals(accountUid, differentUid)
-        IO.pure(TransactionFeedResponse(List.empty))
-      }
-    }
+    val mockApi = createMockApi(
+      accountUidAssertion = accountUid => assertEquals(accountUid, differentUid)
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
 
@@ -196,17 +179,12 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = differentStartDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
 
@@ -217,22 +195,17 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions handles leap year date correctly") {
-    val leapYearDate = LocalDate.of(2024, 2, 29) // Feb 29th in leap year
+    val leapYearDate = LocalDate.of(2024, 2, 29)
     val expectedStart = leapYearDate.atStartOfDay(ZoneOffset.UTC)
-    val expectedEnd = expectedStart.plusDays(7) // Should be March 7th, 2024
+    val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
         assertEquals(max.toLocalDate, LocalDate.of(2024, 3, 7))
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(
@@ -242,22 +215,17 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions handles month boundary crossing correctly") {
-    val endOfMonth = LocalDate.of(2023, 1, 31) // January 31st
+    val endOfMonth = LocalDate.of(2023, 1, 31)
     val expectedStart = endOfMonth.atStartOfDay(ZoneOffset.UTC)
-    val expectedEnd = expectedStart.plusDays(7) // Should be February 7th
+    val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
         assertEquals(max.toLocalDate, LocalDate.of(2023, 2, 7))
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(
@@ -267,23 +235,18 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions handles year boundary crossing correctly") {
-    val endOfYear = LocalDate.of(2023, 12, 31) // December 31st
+    val endOfYear = LocalDate.of(2023, 12, 31)
     val expectedStart = endOfYear.atStartOfDay(ZoneOffset.UTC)
-    val expectedEnd = expectedStart.plusDays(7) // Should be January 7th, 2024
+    val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
         assertEquals(max.toLocalDate, LocalDate.of(2024, 1, 7))
         assertEquals(max.getYear, 2024)
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(
@@ -293,23 +256,17 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions handles February in non-leap year correctly") {
-    val febInNonLeapYear =
-      LocalDate.of(2023, 2, 25) // Feb 25th in non-leap year
+    val febInNonLeapYear = LocalDate.of(2023, 2, 25)
     val expectedStart = febInNonLeapYear.atStartOfDay(ZoneOffset.UTC)
-    val expectedEnd = expectedStart.plusDays(7) // Should be March 4th, 2023
+    val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
         assertEquals(max.toLocalDate, LocalDate.of(2023, 3, 4))
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(
@@ -325,42 +282,31 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = testDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
-        // Verify both timestamps are in UTC
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min.getOffset, ZoneOffset.UTC)
         assertEquals(max.getOffset, ZoneOffset.UTC)
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(client.fetchTransactions(testAccount, testDate), Right(List.empty))
   }
 
   test("fetchTransactions handles minimum possible LocalDate") {
-    val minDate = LocalDate.of(1970, 1, 1) // Unix epoch start
+    val minDate = LocalDate.of(1970, 1, 1)
     val expectedStart = minDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
         assertEquals(max.toLocalDate, LocalDate.of(1970, 1, 8))
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(client.fetchTransactions(testAccount, minDate), Right(List.empty))
@@ -371,18 +317,13 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = futureDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
         assertEquals(max.toLocalDate, LocalDate.of(2100, 1, 1))
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(
@@ -392,25 +333,18 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions handles daylight saving time transition dates") {
-    // Test around typical DST transition dates (though we use UTC, so shouldn't matter)
-    val dstTransitionDate = LocalDate.of(2023, 3, 26) // Typical EU DST start
+    val dstTransitionDate = LocalDate.of(2023, 3, 26)
     val expectedStart = dstTransitionDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
-        // Should still be UTC regardless of DST
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         assertEquals(min.getOffset, ZoneOffset.UTC)
         assertEquals(max.getOffset, ZoneOffset.UTC)
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(
@@ -424,20 +358,14 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = testDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, max) => {
         val duration = java.time.Duration.between(min, max)
         assertEquals(duration.toDays, 7L)
         assertEquals(duration.toHours, 168L)
-
         assertEquals(max, expectedEnd)
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(client.fetchTransactions(testAccount, testDate), Right(List.empty))
@@ -447,22 +375,15 @@ class TransactionClientSpec extends CatsEffectSuite {
     val testDate = LocalDate.of(2023, 8, 10)
     val expectedStart = testDate.atStartOfDay(ZoneOffset.UTC)
 
-    val mockApi = new StarlingTransactionApi[IO] {
-      def getSettledTransactionsBetween(
-          a: String,
-          min: ZonedDateTime,
-          max: ZonedDateTime
-      ) = {
-        // Verify start time is exactly midnight UTC
+    val mockApi = createMockApi(
+      dateRangeAssertion = (min, _) => {
         assertEquals(min.getHour, 0)
         assertEquals(min.getMinute, 0)
         assertEquals(min.getSecond, 0)
         assertEquals(min.getNano, 0)
-
         assertEquals(min, expectedStart)
-        IO.pure(TransactionFeedResponse(List.empty))
       }
-    }
+    )
 
     val client = TransactionClient.impl[IO](mockApi)
     assertIO(client.fetchTransactions(testAccount, testDate), Right(List.empty))

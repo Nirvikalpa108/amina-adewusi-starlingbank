@@ -6,8 +6,10 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.http4s.{EntityDecoder, EntityEncoder}
 import org.http4s.circe.{jsonEncoderOf, jsonOf}
 
+import java.util.UUID
+
 final case class Account(
-    accountUid: String,
+    accountUid: UUID,
     accountType: String,
     defaultCategory: String,
     currency: String,

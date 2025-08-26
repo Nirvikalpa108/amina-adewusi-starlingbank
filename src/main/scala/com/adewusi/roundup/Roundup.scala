@@ -4,14 +4,12 @@ import cats.data.EitherT
 import cats.effect.Sync
 import com.adewusi.roundup.model._
 import java.time.LocalDate
-import java.util.UUID
 
 object Roundup {
 
   def processRoundups[F[_]: Sync](
       startDate: LocalDate,
-      config: AppConfig,
-      savingsGoalId: Option[UUID]
+      config: AppConfig
   )(implicit
       accountClient: AccountClient[F],
       transactionClient: TransactionClient[F],
@@ -26,7 +24,7 @@ object Roundup {
       transactions <- EitherT(transactionClient.fetchTransactions(account, startDate))
       validatedTransactions <- EitherT.fromEither(transactionValidator.validateTransactions(transactions))
       roundup <- EitherT.fromEither(transactionValidator.validateRoundupAmount(validatedTransactions))
-      goal <- EitherT(savingsGoalClient.fetchOrCreateSavingsGoal(config, savingsGoalId))
+      goal <- EitherT(savingsGoalClient.fetchOrCreateSavingsGoal(config, account.accountUid))
       // NOTE: In production, idempotency + recording should be atomic to avoid race conditions.
       // This test assumes single-instance execution.
       needsProcessing <- EitherT(

@@ -3,10 +3,12 @@ package com.adewusi.roundup
 import com.adewusi.roundup.model._
 import munit.FunSuite
 
+import java.util.UUID
+
 class AccountSelectorSpec extends FunSuite {
 
   val gbpPrimaryAccount = Account(
-    accountUid = "gbp-primary-uid",
+    accountUid = UUID.randomUUID(),
     accountType = "PRIMARY",
     defaultCategory = "cat-uid",
     currency = "GBP",
@@ -15,7 +17,7 @@ class AccountSelectorSpec extends FunSuite {
   )
 
   val eurAccount = Account(
-    accountUid = "eur-uid",
+    accountUid = UUID.randomUUID(),
     accountType = "PRIMARY",
     defaultCategory = "cat-uid",
     currency = "EUR",
@@ -24,7 +26,7 @@ class AccountSelectorSpec extends FunSuite {
   )
 
   val gbpSavingsAccount = Account(
-    accountUid = "gbp-savings-uid",
+    accountUid = UUID.randomUUID(),
     accountType = "SAVINGS",
     defaultCategory = "cat-uid",
     currency = "GBP",
@@ -33,7 +35,7 @@ class AccountSelectorSpec extends FunSuite {
   )
 
   val gbpBusinessAccount = Account(
-    accountUid = "gbp-business-uid",
+    accountUid = UUID.randomUUID(),
     accountType = "BUSINESS",
     defaultCategory = "cat-uid",
     currency = "GBP",
@@ -52,7 +54,7 @@ class AccountSelectorSpec extends FunSuite {
   //TODO double check this possibility
   test("getCorrectAccount returns first GBP PRIMARY account when multiple exist") {
     val anotherGbpPrimary = gbpPrimaryAccount.copy(
-      accountUid = "gbp-primary-uid-2",
+      accountUid = UUID.randomUUID(),
       name = "Personal 2"
     )
     val accounts = List(eurAccount, gbpPrimaryAccount, anotherGbpPrimary)
@@ -79,7 +81,7 @@ class AccountSelectorSpec extends FunSuite {
 
   test("getCorrectAccount ignores PRIMARY accounts that are not GBP") {
     val usdPrimaryAccount = gbpPrimaryAccount.copy(
-      accountUid = "usd-primary-uid",
+      accountUid = UUID.randomUUID(),
       currency = "USD",
       name = "USD Personal"
     )
@@ -91,7 +93,7 @@ class AccountSelectorSpec extends FunSuite {
   //TODO check this case
   test("getCorrectAccount is case sensitive for currency") {
     val lowercaseGbpAccount = gbpPrimaryAccount.copy(
-      accountUid = "lowercase-gbp-uid",
+      accountUid = UUID.randomUUID(),
       currency = "gbp"
     )
     val accounts = List(lowercaseGbpAccount)
@@ -102,7 +104,7 @@ class AccountSelectorSpec extends FunSuite {
   //TODO check this case
   test("getCorrectAccount is case sensitive for accountType") {
     val lowercasePrimaryAccount = gbpPrimaryAccount.copy(
-      accountUid = "lowercase-primary-uid",
+      accountUid = UUID.randomUUID(),
       accountType = "primary"
     )
     val accounts = List(lowercasePrimaryAccount)

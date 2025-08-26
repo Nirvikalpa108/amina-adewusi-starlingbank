@@ -9,6 +9,7 @@ import org.http4s.circe.CirceEntityCodec._
 import org.http4s.dsl.Http4sDsl
 
 import java.time.ZonedDateTime
+import java.util.UUID
 
 object RoundupRoutes {
 
@@ -73,7 +74,7 @@ object RoundupRoutes {
           minTs <- Sync[F].delay(ZonedDateTime.parse(minTimestampStr))
           maxTs <- Sync[F].delay(ZonedDateTime.parse(maxTimestampStr))
           transactions <- T.getSettledTransactionsBetween(
-            accountUid,
+            UUID.fromString(accountUid),
             minTs,
             maxTs
           )

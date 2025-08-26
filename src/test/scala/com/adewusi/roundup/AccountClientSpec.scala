@@ -5,11 +5,13 @@ import com.adewusi.roundup.model._
 import com.adewusi.roundup.starlingapis.StarlingAccountsApi
 import munit.CatsEffectSuite
 
+import java.util.UUID
+
 class AccountClientSpec extends CatsEffectSuite {
 
   // Test data
   val account1 = Account(
-    accountUid = "uid-1",
+    accountUid = UUID.randomUUID(),
     accountType = "PRIMARY",
     defaultCategory = "cat-uid-1",
     currency = "GBP",
@@ -18,7 +20,7 @@ class AccountClientSpec extends CatsEffectSuite {
   )
 
   val account2 = account1.copy(
-    accountUid = "uid-2",
+    accountUid = UUID.randomUUID(),
     accountType = "SAVINGS",
     currency = "EUR",
     name = "Euro Account"
