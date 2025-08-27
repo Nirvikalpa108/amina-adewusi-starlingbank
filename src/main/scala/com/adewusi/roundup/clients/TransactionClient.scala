@@ -1,4 +1,4 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.clients
 
 import cats.effect.Concurrent
 import cats.syntax.all._

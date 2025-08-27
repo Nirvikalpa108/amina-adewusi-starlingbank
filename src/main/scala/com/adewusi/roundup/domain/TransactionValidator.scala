@@ -1,4 +1,4 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.domain
 
 import com.adewusi.roundup.model.{AppError, NoTransactions, TransactionFeedItem}
 

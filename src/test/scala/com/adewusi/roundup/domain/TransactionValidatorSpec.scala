@@ -1,11 +1,6 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.domain
 
-import com.adewusi.roundup.model.{
-  AssociatedFeedRoundUp,
-  CurrencyAndAmount,
-  NoTransactions,
-  TransactionFeedItem
-}
+import com.adewusi.roundup.model.{AssociatedFeedRoundUp, CurrencyAndAmount, NoTransactions, TransactionFeedItem}
 import munit.CatsEffectSuite
 
 import java.time.ZonedDateTime

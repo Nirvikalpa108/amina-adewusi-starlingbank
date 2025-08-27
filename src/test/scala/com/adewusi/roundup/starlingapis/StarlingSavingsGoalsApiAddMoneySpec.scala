@@ -1,12 +1,12 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
-import org.http4s._
-import org.http4s.implicits._
-import munit.CatsEffectSuite
+import com.adewusi.roundup.RoundupRoutes
 import com.adewusi.roundup.model._
-import com.adewusi.roundup.starlingapis.StarlingSavingsGoalsApi
+import munit.CatsEffectSuite
+import org.http4s._
 import org.http4s.headers.`Content-Type`
+import org.http4s.implicits._
 
 import java.util.UUID
 

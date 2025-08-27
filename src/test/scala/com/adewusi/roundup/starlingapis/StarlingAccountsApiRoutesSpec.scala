@@ -1,11 +1,11 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
+import com.adewusi.roundup.RoundupRoutes
+import com.adewusi.roundup.model.{Account, AccountsResponse}
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.implicits._
-import com.adewusi.roundup.model.{Account, AccountsResponse}
-import com.adewusi.roundup.starlingapis.StarlingAccountsApi
 
 import java.util.UUID
 

@@ -1,4 +1,4 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.clients
 
 import cats.effect.IO
 import com.adewusi.roundup.model._

@@ -1,8 +1,8 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
-import com.adewusi.roundup.model.{AddMoneyRequest, AddMoneyResponse, CreateSavingsGoalRequest, CreateSavingsGoalResponse, CurrencyAndAmount, SavingsGoal, SavingsGoalsResponse}
-import com.adewusi.roundup.starlingapis.StarlingSavingsGoalsApi
+import com.adewusi.roundup.RoundupRoutes
+import com.adewusi.roundup.model._
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.implicits._

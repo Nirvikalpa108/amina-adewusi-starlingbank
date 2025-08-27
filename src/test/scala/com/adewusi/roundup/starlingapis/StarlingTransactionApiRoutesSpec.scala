@@ -1,15 +1,14 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
+import com.adewusi.roundup.RoundupRoutes
+import com.adewusi.roundup.model.TransactionFeedResponse
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.implicits._
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import com.adewusi.roundup.model.TransactionFeedResponse
-import com.adewusi.roundup.starlingapis.StarlingTransactionApi
-
 import java.util.UUID
 
 class StarlingTransactionApiRoutesSpec extends CatsEffectSuite {
