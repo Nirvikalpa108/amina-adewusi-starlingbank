@@ -3,10 +3,12 @@ package com.adewusi.roundup.model
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
 
+import java.util.UUID
+
 case class StarlingConfig(
     accessToken: String,
     baseUrl: String,
-    goalFilePath: String
+    initialGoalId: Option[UUID]
 )
 
 case class AppConfig(

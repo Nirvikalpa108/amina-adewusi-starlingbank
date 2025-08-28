@@ -2,9 +2,25 @@ package com.adewusi.roundup.repository
 
 import com.adewusi.roundup.model.{AppConfig, AppError}
 
+import cats.effect.{Ref, Sync}
+import cats.implicits._
 import java.util.UUID
 
 trait GoalRepository[F[_]] {
   def readGoal(config: AppConfig): F[Either[AppError, Option[UUID]]]
   def persistGoal(goal: UUID): F[Either[AppError, Unit]]
+}
+
+object GoalRepository {
+  def inMemoryGoalRepository[F[_]: Sync](config: AppConfig): F[GoalRepository[F]] = {
+    Ref.of[F, Option[UUID]](config.starling.initialGoalId).map { goalRef =>
+      new GoalRepository[F] {
+        override def readGoal(config: AppConfig): F[Either[AppError, Option[UUID]]] =
+          goalRef.get.map(_.asRight[AppError])
+
+        override def persistGoal(goal: UUID): F[Either[AppError, Unit]] =
+          goalRef.set(Some(goal)).map(_.asRight[AppError])
+      }
+    }
+  }
 }

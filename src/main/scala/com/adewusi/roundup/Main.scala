@@ -13,6 +13,7 @@ object Main extends IOApp.Simple {
 //      EmberClientBuilder.default[IO].build.use { httpClient =>
 //        val starlingAccountsApi = StarlingAccountsApi.impl[IO](httpClient, config)
 //        implicit val accountClient: AccountClient[IO] = AccountClient.impl(starlingAccountsApi)
+//        implicit val goalRepo: GoalRepository[IO] = GoalRepository.inMemoryGoalRepository[IO](config)
 //
 //        val starlingTxApi     = ...
 //        implicit val txClient = TransactionClient.impl(starlingTxApi)
