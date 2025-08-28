@@ -6,19 +6,19 @@ import java.util.UUID
 
 trait TransactionValidator {
   def validateTransactions(
-      transactions: List[TransactionFeedItem]
+      transactions: List[TransactionFeedItem], mainCategoryUid: UUID
   ): Either[AppError, List[TransactionFeedItem]]
   def validateRoundupAmount(
-      transactions: List[TransactionFeedItem]
+      transactions: List[TransactionFeedItem], mainCategoryUid: UUID
   ): Either[AppError, Long]
 }
 
 object TransactionValidator {
-  def impl(mainCategoryUid: UUID): TransactionValidator =
+  def impl: TransactionValidator =
     new TransactionValidator {
 
       def validateTransactions(
-          transactions: List[TransactionFeedItem]
+          transactions: List[TransactionFeedItem], mainCategoryUid: UUID
       ): Either[AppError, List[TransactionFeedItem]] = {
         val validTransactions = transactions.filter(isEligible(_, mainCategoryUid))
 
@@ -27,9 +27,9 @@ object TransactionValidator {
       }
 
       def validateRoundupAmount(
-          transactions: List[TransactionFeedItem]
+          transactions: List[TransactionFeedItem] , mainCategoryUid: UUID
       ): Either[AppError, Long] = {
-        validateTransactions(transactions) match {
+        validateTransactions(transactions, mainCategoryUid) match {
           case Left(error) => Left(error)
           case Right(validTransactions) =>
             if (validTransactions.isEmpty) {
