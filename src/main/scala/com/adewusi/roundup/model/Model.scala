@@ -3,6 +3,7 @@ package com.adewusi.roundup.model
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
 
+import java.time.LocalDate
 import java.util.UUID
 
 case class StarlingConfig(
@@ -42,3 +43,5 @@ final case class TransferError(reason: String) extends InfraError
 final case class GenericError(reason: String) extends InfraError
 final case class FileReadError(reason: String) extends InfraError
 final case class FileWriteError(reason: String) extends InfraError
+
+case class CliArgs(startDate: LocalDate, dryRun: Boolean = true, goalId: Option[UUID])

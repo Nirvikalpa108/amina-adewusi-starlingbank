@@ -198,7 +198,6 @@ class RoundupSpec extends CatsEffectSuite with RoundupSpecUtils {
       transactionClient = createMockTransactionClient(IO.pure(Right(transactions))),
       savingsClient = createMockSavingsClient(
         getGoalResponse = IO.pure(Right(goal)),
-        // if transfer is *accidentally* called, this will blow up
         transferResponse = IO.raiseError(new RuntimeException("Transfer should NOT be attempted")),
         createGoalResponse = IO.pure(Right(goal.savingsGoalUid))
       ),
