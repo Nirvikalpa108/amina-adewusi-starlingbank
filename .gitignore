@@ -27,3 +27,5 @@ project/plugins/project/
 *.ipr
 out/
 .bsp
+
+.DS_Store

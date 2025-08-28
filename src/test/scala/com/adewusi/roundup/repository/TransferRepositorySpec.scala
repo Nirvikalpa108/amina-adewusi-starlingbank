@@ -1,8 +1,8 @@
 package com.adewusi.roundup.repository
 
 import cats.implicits._
-import cats.effect.IO
-import com.adewusi.roundup.model.AddMoneyResponse
+import cats.effect.{IO, Ref}
+import com.adewusi.roundup.model.{AddMoneyResponse, TransferRecord}
 import munit.CatsEffectSuite
 
 import java.time.LocalDate
@@ -18,115 +18,72 @@ class TransferRepositorySpec extends CatsEffectSuite {
   val testResponse: AddMoneyResponse =
     AddMoneyResponse(testTransferUid, success = true)
 
+  private def createRepoWithRef(
+      ref: Ref[IO, Set[TransferRecord]]
+  ): TransferRepository[IO] =
+    TransferRepository.inMemoryTransferRepository[IO](ref)
+
   test("isEligibleForTransfer should return true when no transfers exist") {
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
+      ref <- Ref.of[IO, Set[TransferRecord]](Set.empty)
+      repo = createRepoWithRef(ref)
       result <- repo.isEligibleForTransfer(testGoal, testDate, testAmount)
     } yield {
       assertEquals(result, Right(true))
     }
   }
 
-  test(
-    "isEligibleForTransfer should return false when transfer already exists for same goal and week"
-  ) {
+  test("eligibility should return false for any day in the 7‑day range") {
+    val existing = TransferRecord(testGoal, testDate, testAmount, testResponse.transferUid)
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
-      _ <- repo.recordTransfer(testGoal, testDate, testAmount, testResponse)
-      result <- repo.isEligibleForTransfer(testGoal, testDate, testAmount)
-    } yield {
-      assertEquals(result, Right(false))
-    }
-  }
-
-  test(
-    "isEligibleForTransfer should return false when transfer exists within the 7-day window"
-  ) {
-    for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
-      // Record transfer on Monday
-      _ <- repo.recordTransfer(testGoal, testDate, testAmount, testResponse)
-      // Check eligibility on Wednesday (within same week)
-      result <- repo.isEligibleForTransfer(
-        testGoal,
-        testDate.plusDays(2),
-        testAmount
-      )
-    } yield {
-      assertEquals(result, Right(false))
-    }
-  }
-
-  test(
-    "isEligibleForTransfer should return false for any day in the 7-day range"
-  ) {
-    for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
-      // Record transfer on Monday
-      _ <- repo.recordTransfer(testGoal, testDate, testAmount, testResponse)
-      // Test each day of the week (0-6 days after start)
+      ref <- Ref.of[IO, Set[TransferRecord]](Set(existing))
+      repo = createRepoWithRef(ref)
       results <- (0 to 6).toList.traverse { dayOffset =>
-        repo.isEligibleForTransfer(
-          testGoal,
-          testDate.plusDays(dayOffset.toLong),
-          testAmount
-        )
+        repo.isEligibleForTransfer(testGoal, testDate.plusDays(dayOffset.toLong), testAmount)
       }
-    } yield {
-      // All days in the week should be ineligible
-      results.foreach(result => assertEquals(result, Right(false)))
-    }
+    } yield results.foreach(r => assertEquals(r, Right(false)))
   }
 
-  test(
-    "isEligibleForTransfer should return true for different goals in same week"
-  ) {
+  test("eligibility should return true for different goals in same week") {
+    val existing = TransferRecord(testGoal, testDate, testAmount, testResponse.transferUid)
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
-      // Record transfer for goal 1
-      _ <- repo.recordTransfer(testGoal, testDate, testAmount, testResponse)
-      // Check eligibility for goal 2 in same week
+      ref <- Ref.of[IO, Set[TransferRecord]](Set(existing))
+      repo = createRepoWithRef(ref)
       result <- repo.isEligibleForTransfer(testGoal2, testDate, testAmount)
-    } yield {
-      assertEquals(result, Right(true))
-    }
+    } yield assertEquals(result, Right(true))
   }
 
-  test(
-    "isEligibleForTransfer should return true for same goal in different week"
-  ) {
+  test("eligibility should return true for same goal in different week") {
+    val existing = TransferRecord(testGoal, testDate, testAmount, testResponse.transferUid)
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
-      // Record transfer for week 1
-      _ <- repo.recordTransfer(testGoal, testDate, testAmount, testResponse)
-      // Check eligibility for week 2 (8 days later, outside the 7-day window)
-      result <- repo.isEligibleForTransfer(
-        testGoal,
-        testDate.plusDays(8),
-        testAmount
-      )
-    } yield {
-      assertEquals(result, Right(true))
-    }
+      ref <- Ref.of[IO, Set[TransferRecord]](Set(existing))
+      repo = createRepoWithRef(ref)
+      result <- repo.isEligibleForTransfer(testGoal, testDate.plusDays(8), testAmount)
+    } yield assertEquals(result, Right(true))
   }
 
-  test(
-    "isEligibleForTransfer should ignore roundup amount when checking duplicates"
-  ) {
+  test("eligibility should ignore roundup amount when checking duplicates") {
+    val existing = TransferRecord(testGoal, testDate, 158L, testResponse.transferUid)
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
-      // Record transfer with amount 158
-      _ <- repo.recordTransfer(testGoal, testDate, 158L, testResponse)
-      // Check eligibility with different amount (250) but same goal and week
+      ref <- Ref.of[IO, Set[TransferRecord]](Set(existing))
+      repo = createRepoWithRef(ref)
       result <- repo.isEligibleForTransfer(testGoal, testDate, 250L)
-    } yield {
-      assertEquals(result, Right(false))
-    }
+    } yield assertEquals(result, Right(false))
+  }
+
+  test("eligibility boundary: day 7 should be eligible (outside 7‑day window)") {
+    val existing = TransferRecord(testGoal, testDate, testAmount, testResponse.transferUid)
+    for {
+      ref <- Ref.of[IO, Set[TransferRecord]](Set(existing))
+      repo = createRepoWithRef(ref)
+      result <- repo.isEligibleForTransfer(testGoal, testDate.plusDays(7), testAmount)
+    } yield assertEquals(result, Right(true))
   }
 
   test("recordTransfer should successfully record a transfer") {
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
+      ref <- Ref.of[IO, Set[TransferRecord]](Set.empty)
+      repo = createRepoWithRef(ref)
       result <- repo.recordTransfer(
         testGoal,
         testDate,
@@ -140,7 +97,8 @@ class TransferRepositorySpec extends CatsEffectSuite {
 
   test("recordTransfer should allow recording transfers for different goals") {
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
+      ref <- Ref.of[IO, Set[TransferRecord]](Set.empty)
+      repo = createRepoWithRef(ref)
       result1 <- repo.recordTransfer(
         testGoal,
         testDate,
@@ -161,7 +119,8 @@ class TransferRepositorySpec extends CatsEffectSuite {
 
   test("recordTransfer should allow recording transfers for different weeks") {
     for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
+      ref <- Ref.of[IO, Set[TransferRecord]](Set.empty)
+      repo = createRepoWithRef(ref)
       result1 <- repo.recordTransfer(
         testGoal,
         testDate,
@@ -177,22 +136,6 @@ class TransferRepositorySpec extends CatsEffectSuite {
     } yield {
       assertEquals(result1, Right(()))
       assertEquals(result2, Right(()))
-    }
-  }
-
-  test("boundary test: day 7 should be eligible (outside 7-day window)") {
-    for {
-      repo <- TransferRepository.inMemoryTransferRepository[IO]
-      // Record transfer on Monday
-      _ <- repo.recordTransfer(testGoal, testDate, testAmount, testResponse)
-      // Check eligibility exactly 7 days later (should be eligible)
-      result <- repo.isEligibleForTransfer(
-        testGoal,
-        testDate.plusDays(7),
-        testAmount
-      )
-    } yield {
-      assertEquals(result, Right(true))
     }
   }
 }
