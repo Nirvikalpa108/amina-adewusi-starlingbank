@@ -6,6 +6,7 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.http4s.{EntityDecoder, EntityEncoder}
 import org.http4s.circe.{jsonEncoderOf, jsonOf}
 
+import java.time.LocalDate
 import java.util.UUID
 
 case class SavingsGoal(
@@ -129,3 +130,10 @@ object AddMoneyResponse {
       : EntityDecoder[F, AddMoneyResponse] =
     jsonOf[F, AddMoneyResponse]
 }
+
+case class TransferRecord(
+    goal: UUID,
+    startDate: LocalDate,
+    amountMinorUnits: Long,
+    transferId: UUID
+)
