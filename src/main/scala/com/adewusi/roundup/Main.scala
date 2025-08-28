@@ -24,4 +24,9 @@ object Main extends IOApp.Simple {
 //        }
 //      }
 //    }
+//config <- Config.load
+//
+//    // allocate in-memory Ref with optional initial GoalId from config
+//    goalRef <- Ref.of[IO, Option[UUID]](config.starling.initialGoalId)
+
 

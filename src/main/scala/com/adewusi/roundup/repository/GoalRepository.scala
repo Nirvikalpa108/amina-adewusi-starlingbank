@@ -12,15 +12,13 @@ trait GoalRepository[F[_]] {
 }
 
 object GoalRepository {
-  def inMemoryGoalRepository[F[_]: Sync](config: AppConfig): F[GoalRepository[F]] = {
-    Ref.of[F, Option[UUID]](config.starling.initialGoalId).map { goalRef =>
-      new GoalRepository[F] {
-        override def readGoal(config: AppConfig): F[Either[AppError, Option[UUID]]] =
-          goalRef.get.map(_.asRight[AppError])
+  def inMemoryGoalRepository[F[_]: Sync](goalRef: Ref[F, Option[UUID]]): GoalRepository[F] = {
+    new GoalRepository[F] {
+      override def readGoal(config: AppConfig): F[Either[AppError, Option[UUID]]] =
+        goalRef.get.map(_.asRight[AppError])
 
-        override def persistGoal(goal: UUID): F[Either[AppError, Unit]] =
-          goalRef.set(Some(goal)).map(_.asRight[AppError])
-      }
+      override def persistGoal(goal: UUID): F[Either[AppError, Unit]] =
+        goalRef.set(Some(goal)).map(_.asRight[AppError])
     }
   }
 }

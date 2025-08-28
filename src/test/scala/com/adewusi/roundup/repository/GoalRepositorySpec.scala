@@ -1,6 +1,6 @@
 package com.adewusi.roundup.repository
 
-import cats.effect.IO
+import cats.effect.{IO, Ref}
 import com.adewusi.roundup.model._
 import munit.CatsEffectSuite
 
@@ -18,7 +18,8 @@ class GoalRepositorySpec extends CatsEffectSuite {
     )
 
     val result = for {
-      repo <- GoalRepository.inMemoryGoalRepository[IO](config)
+      goalRef <- Ref.of[IO, Option[UUID]](None)
+      repo = GoalRepository.inMemoryGoalRepository[IO](goalRef)
       goal <- repo.readGoal(config)
     } yield goal
 
@@ -36,7 +37,8 @@ class GoalRepositorySpec extends CatsEffectSuite {
     )
 
     val result = for {
-      repo <- GoalRepository.inMemoryGoalRepository[IO](config)
+      goalRef <- Ref.of[IO, Option[UUID]](Some(expectedGoalId))
+      repo = GoalRepository.inMemoryGoalRepository[IO](goalRef)
       goal <- repo.readGoal(config)
     } yield goal
 
@@ -56,7 +58,8 @@ class GoalRepositorySpec extends CatsEffectSuite {
     )
 
     val result = for {
-      repo <- GoalRepository.inMemoryGoalRepository[IO](config)
+      goalRef <- Ref.of[IO, Option[UUID]](Some(initialGoalId))
+      repo = GoalRepository.inMemoryGoalRepository[IO](goalRef)
       _ <- repo.persistGoal(newGoalId)
       goal <- repo.readGoal(config)
     } yield goal
