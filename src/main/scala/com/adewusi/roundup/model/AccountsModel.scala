@@ -11,7 +11,7 @@ import java.util.UUID
 final case class Account(
     accountUid: UUID,
     accountType: String,
-    defaultCategory: String,
+    defaultCategory: UUID,
     currency: String,
     createdAt: String,
     name: String
