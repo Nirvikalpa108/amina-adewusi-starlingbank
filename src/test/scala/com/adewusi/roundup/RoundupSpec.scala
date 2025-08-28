@@ -14,14 +14,11 @@ import java.util.UUID
 class RoundupSpec extends CatsEffectSuite with RoundupSpecUtils {
 
   private val startDate = LocalDate.of(2025, 1, 1)
-
   private val accounts = AccountsResponse(List(testAccount()))
-
   private val transactions = List(
     createTransactionFeedItem(195), // £1.95 → roundup = 5p
-    createTransactionFeedItem(250)  // £2.50 → roundup = 50p
+    createTransactionFeedItem(250) // £2.50 → roundup = 50p
   )
-
   private val expectedRoundup = CurrencyAndAmount("GBP", 55) // 5p + 50p = 55p
 
   val goal = SavingsGoal(
@@ -33,60 +30,213 @@ class RoundupSpec extends CatsEffectSuite with RoundupSpecUtils {
     state = "ACTIVE"
   )
 
-  // Mocked Starling accounts client: always returns a single test account
-  implicit val accountClient: AccountClient[IO] =
-    createMockAccountClient(IO.pure(Right(accounts.accounts)))
-
-  // Mocked transactions client: always returns the two test transactions
-  implicit val transactionClient: TransactionClient[IO] =
-    createMockTransactionClient(IO.pure(Right(transactions)))
-
-  // Simulates an existing active goal: `getGoal` returns the test goal.
-  // `createGoal` should never be called so it can just return an error if invoked.
-  // `transferToGoal` always succeeds to complete the round‑up flow.
-  implicit val savingsClient: SavingsGoalClient[IO] =
-  createMockSavingsClient(
-    getGoalResponse    = IO.pure(Right(goal)),
-    createGoalResponse = IO.raiseError(new RuntimeException("createGoal should not be called")),
-    transferResponse   = IO.pure(Right(AddMoneyResponse(UUID.randomUUID(), success = true)))
+  // Test scenarios table
+  case class TestScenario(
+      name: String,
+      accountClient: AccountClient[IO],
+      transactionClient: TransactionClient[IO],
+      savingsClient: SavingsGoalClient[IO],
+      goalRepo: GoalRepository[IO],
+      goalService: GoalService[IO],
+      transferRepo: TransferRepository[IO],
+      selector: AccountSelector,
+      validator: TransactionValidator,
+      expectedResult: Either[AppError, Unit]
   )
 
-  // Mocked goal repository (persistence layer): happy path
-  // readGoal` returns the saved goal, `persistGoal` is a no-op
-  implicit val goalRepo: GoalRepository[IO] =
-  createMockGoalRepo(
-    persistResponse = IO.pure(Right(())),
-    readResponse    = IO.pure(Right(Some(goal.savingsGoalUid)))
-  )
-
-  // Mocked goal service: always returns the existing goal UUID (retrieval path)
-  implicit val goalService: GoalService[IO] =
-    createMockGoalService(IO.pure(Right(goal.savingsGoalUid)))
-
-  // Mocked transfer repository: happy path
-  // - isEligibleForTransfer always true
-  // - recordTransfer always succeeds
-  implicit val transferRepo: TransferRepository[IO] =
-  createMockTransferRepo(
-    eligibilityResponse = IO.pure(Right(true)),
-    recordResponse      = IO.pure(Right(()))
-  )
-
-  // Mocked account selector: always picks the test account as "the correct one"
-  implicit val selector: AccountSelector =
-    createMockAccountSelector(Right(testAccount()))
-
-  // Mocked transaction validator: accepts all transactions and returns the expected roundup
-  implicit val validator: TransactionValidator =
-    createMockTransactionValidator(
-      validateTransactionsResponse = Right(transactions),
-      validateRoundupResponse      = Right(expectedRoundup.minorUnits)
+  private val testScenarios = List(
+    TestScenario(
+      name = "happy path - existing goal retrieved successfully",
+      accountClient =
+        createMockAccountClient(IO.pure(Right(accounts.accounts))),
+      transactionClient =
+        createMockTransactionClient(IO.pure(Right(transactions))),
+      savingsClient = createMockSavingsClient(
+        getGoalResponse = IO.pure(Right(goal)),
+        createGoalResponse = IO.raiseError(
+          new RuntimeException("createGoal should not be called")
+        ),
+        transferResponse =
+          IO.pure(Right(AddMoneyResponse(UUID.randomUUID(), success = true)))
+      ),
+      goalRepo = createMockGoalRepo(
+        persistResponse = IO.pure(Right(())),
+        readResponse = IO.pure(Right(Some(goal.savingsGoalUid)))
+      ),
+      goalService = createMockGoalService(IO.pure(Right(goal.savingsGoalUid))),
+      transferRepo = createMockTransferRepo(
+        eligibilityResponse = IO.pure(Right(true)),
+        recordResponse = IO.pure(Right(()))
+      ),
+      selector = createMockAccountSelector(Right(testAccount())),
+      validator = createMockTransactionValidator(
+        validateTransactionsResponse = Right(transactions),
+        validateRoundupResponse = Right(expectedRoundup.minorUnits)
+      ),
+      expectedResult = Right(())
+    ),
+    TestScenario(
+      name = "account client fails",
+      accountClient = createMockAccountClient(
+        IO.pure(Left(GenericError("Account fetch failed")))
+      ),
+      transactionClient =
+        createMockTransactionClient(IO.pure(Right(transactions))),
+      savingsClient = createMockSavingsClient(
+        getGoalResponse = IO.pure(Right(goal)),
+        transferResponse =
+          IO.pure(Right(AddMoneyResponse(UUID.randomUUID(), success = true))),
+        createGoalResponse = IO.pure(Right(UUID.randomUUID()))
+      ),
+      goalRepo = createMockGoalRepo(
+        persistResponse = IO.pure(Right(())),
+        readResponse = IO.pure(Right(Some(goal.savingsGoalUid)))
+      ),
+      goalService = createMockGoalService(IO.pure(Right(goal.savingsGoalUid))),
+      transferRepo = createMockTransferRepo(
+        eligibilityResponse = IO.pure(Right(true)),
+        recordResponse = IO.pure(Right(()))
+      ),
+      selector = createMockAccountSelector(Right(testAccount())),
+      validator = createMockTransactionValidator(
+        validateTransactionsResponse = Right(transactions),
+        validateRoundupResponse = Right(expectedRoundup.minorUnits)
+      ),
+      expectedResult = Left(GenericError("Account fetch failed"))
+    ),
+    TestScenario(
+      name = "transaction client fails",
+      accountClient =
+        createMockAccountClient(IO.pure(Right(accounts.accounts))),
+      transactionClient = createMockTransactionClient(
+        IO.pure(Left(GenericError("Transaction fetch failed")))
+      ),
+      savingsClient = createMockSavingsClient(
+        getGoalResponse = IO.pure(Right(goal)),
+        transferResponse =
+          IO.pure(Right(AddMoneyResponse(UUID.randomUUID(), success = true))),
+        createGoalResponse = IO.pure(Right(UUID.randomUUID()))
+      ),
+      goalRepo = createMockGoalRepo(
+        persistResponse = IO.pure(Right(())),
+        readResponse = IO.pure(Right(Some(goal.savingsGoalUid)))
+      ),
+      goalService = createMockGoalService(IO.pure(Right(goal.savingsGoalUid))),
+      transferRepo = createMockTransferRepo(
+        eligibilityResponse = IO.pure(Right(true)),
+        recordResponse = IO.pure(Right(()))
+      ),
+      selector = createMockAccountSelector(Right(testAccount())),
+      validator = createMockTransactionValidator(
+        validateTransactionsResponse = Right(transactions),
+        validateRoundupResponse = Right(expectedRoundup.minorUnits)
+      ),
+      expectedResult = Left(GenericError("Transaction fetch failed"))
+    ),
+    TestScenario(
+      name = "goal service fails",
+      accountClient =
+        createMockAccountClient(IO.pure(Right(accounts.accounts))),
+      transactionClient =
+        createMockTransactionClient(IO.pure(Right(transactions))),
+      savingsClient = createMockSavingsClient(
+        getGoalResponse = IO.pure(Right(goal)),
+        transferResponse =
+          IO.pure(Right(AddMoneyResponse(UUID.randomUUID(), success = true))),
+        createGoalResponse = IO.pure(Right(UUID.randomUUID()))
+      ),
+      goalRepo = createMockGoalRepo(
+        persistResponse = IO.pure(Right(())),
+        readResponse = IO.pure(Right(Some(goal.savingsGoalUid)))
+      ),
+      goalService = createMockGoalService(
+        IO.pure(Left(NotFoundError("Goal service failed")))
+      ),
+      transferRepo = createMockTransferRepo(
+        eligibilityResponse = IO.pure(Right(true)),
+        recordResponse = IO.pure(Right(()))
+      ),
+      selector = createMockAccountSelector(Right(testAccount())),
+      validator = createMockTransactionValidator(
+        validateTransactionsResponse = Right(transactions),
+        validateRoundupResponse = Right(expectedRoundup.minorUnits)
+      ),
+      expectedResult = Left(NotFoundError("Goal service failed"))
+    ),
+    TestScenario(
+      name = "transfer repository eligibility check fails",
+      accountClient =
+        createMockAccountClient(IO.pure(Right(accounts.accounts))),
+      transactionClient =
+        createMockTransactionClient(IO.pure(Right(transactions))),
+      savingsClient = createMockSavingsClient(
+        getGoalResponse = IO.pure(Right(goal)),
+        transferResponse =
+          IO.pure(Right(AddMoneyResponse(UUID.randomUUID(), success = true))),
+        createGoalResponse = IO.pure(Right(UUID.randomUUID()))
+      ),
+      goalRepo = createMockGoalRepo(
+        persistResponse = IO.pure(Right(())),
+        readResponse = IO.pure(Right(Some(goal.savingsGoalUid)))
+      ),
+      goalService = createMockGoalService(IO.pure(Right(goal.savingsGoalUid))),
+      transferRepo = createMockTransferRepo(
+        eligibilityResponse =
+          IO.pure(Left(AlreadyTransferred("Transfer not eligible"))),
+        recordResponse = IO.pure(Right(()))
+      ),
+      selector = createMockAccountSelector(Right(testAccount())),
+      validator = createMockTransactionValidator(
+        validateTransactionsResponse = Right(transactions),
+        validateRoundupResponse = Right(expectedRoundup.minorUnits)
+      ),
+      expectedResult = Left(AlreadyTransferred("Transfer not eligible"))
+    ),
+    TestScenario(
+      name = "idempotency: eligibility false prevents transfer",
+      accountClient = createMockAccountClient(IO.pure(Right(accounts.accounts))),
+      transactionClient = createMockTransactionClient(IO.pure(Right(transactions))),
+      savingsClient = createMockSavingsClient(
+        getGoalResponse = IO.pure(Right(goal)),
+        // if transfer is *accidentally* called, this will blow up
+        transferResponse = IO.raiseError(new RuntimeException("Transfer should NOT be attempted")),
+        createGoalResponse = IO.pure(Right(goal.savingsGoalUid))
+      ),
+      goalRepo = createMockGoalRepo(
+        persistResponse = IO.pure(Right(())),
+        readResponse = IO.pure(Right(Some(goal.savingsGoalUid)))
+      ),
+      goalService = createMockGoalService(IO.pure(Right(goal.savingsGoalUid))),
+      transferRepo = createMockTransferRepo(
+        eligibilityResponse = IO.pure(Right(false)),
+        recordResponse = IO.pure(Right(()))
+      ),
+      selector = createMockAccountSelector(Right(testAccount())),
+      validator = createMockTransactionValidator(
+        validateTransactionsResponse = Right(transactions),
+        validateRoundupResponse = Right(expectedRoundup.minorUnits)
+      ),
+      expectedResult = Left(AlreadyTransferred("Roundup for 2025-01-01 already processed"))
     )
+  )
 
-  test("processRoundups succeeds on happy path") {
-    val resultIO: IO[Either[AppError, Unit]] =
-      Roundup.processRoundups[IO](startDate, testConfig()).value
+  // Table-driven test execution
+  testScenarios.foreach { scenario =>
+    test(s"processRoundups: ${scenario.name}") {
+      implicit val accountClient: AccountClient[IO] = scenario.accountClient
+      implicit val transactionClient: TransactionClient[IO] =
+        scenario.transactionClient
+      implicit val savingsClient: SavingsGoalClient[IO] = scenario.savingsClient
+      implicit val goalRepo: GoalRepository[IO] = scenario.goalRepo
+      implicit val goalService: GoalService[IO] = scenario.goalService
+      implicit val transferRepo: TransferRepository[IO] = scenario.transferRepo
+      implicit val selector: AccountSelector = scenario.selector
+      implicit val validator: TransactionValidator = scenario.validator
 
-    resultIO.assertEquals(Right(()))
+      val resultIO: IO[Either[AppError, Unit]] =
+        Roundup.processRoundups[IO](startDate, testConfig()).value
+
+      resultIO.assertEquals(scenario.expectedResult)
+    }
   }
 }
