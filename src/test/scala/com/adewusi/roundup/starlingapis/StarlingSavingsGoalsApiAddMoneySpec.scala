@@ -101,7 +101,7 @@ class StarlingSavingsGoalsApiAddMoneySpec extends CatsEffectSuite {
 
   private val validAddMoneyRequest = AddMoneyRequest(
     amount = CurrencyAndAmount(currency = "GBP", minorUnits = 123456),
-    reference = Some("test reference")
+    reference = Reference.fromString("test reference").toOption
   )
 
   private def retAddMoney(request: AddMoneyRequest): IO[Response[IO]] = {

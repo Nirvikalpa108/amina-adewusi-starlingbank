@@ -80,16 +80,24 @@ object CreateSavingsGoalResponse {
     jsonOf[F, CreateSavingsGoalResponse]
 }
 
+final case class Reference private (value: String)
+
+object Reference {
+  def fromString(s: String): Either[String, Reference] =
+    if (s.length <= 100) Right(Reference(s))
+    else Left(s"Reference too long: ${s.length} chars")
+
+  implicit val referenceEncoder: Encoder[Reference] =
+    Encoder.encodeString.contramap(_.value)
+
+  implicit val referenceDecoder: Decoder[Reference] =
+    Decoder.decodeString.emap(fromString)
+}
+
 case class AddMoneyRequest(
     amount: CurrencyAndAmount,
-    reference: Option[String] = None
-) {
-  def validateReference: Either[String, Unit] =
-    reference match {
-      case Some(r) if r.length > 100 => Left("reference length must be <= 100")
-      case _                         => Right(())
-    }
-}
+    reference: Option[Reference] = None
+)
 
 object AddMoneyRequest {
   implicit val addMoneyRequestDecoder: Decoder[AddMoneyRequest] = deriveDecoder
