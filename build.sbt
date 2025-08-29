@@ -40,5 +40,6 @@ lazy val integration = (project in file("integration"))
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % MunitVersion,
       "org.typelevel" %% "munit-cats-effect" % MunitCatsEffectVersion
-    )
+    ),
+    Test / parallelExecution := false
   )
