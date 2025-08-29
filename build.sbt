@@ -31,3 +31,14 @@ lazy val root = (project in file("."))
       case x => (assembly / assemblyMergeStrategy).value.apply(x)
     }
   )
+
+lazy val integration = (project in file("integration"))
+  .dependsOn(root)
+  .settings(
+    scalaVersion := "2.13.16",
+    publish / skip := true,
+    libraryDependencies ++= Seq(
+      "org.scalameta" %% "munit" % MunitVersion,
+      "org.typelevel" %% "munit-cats-effect" % MunitCatsEffectVersion
+    )
+  )

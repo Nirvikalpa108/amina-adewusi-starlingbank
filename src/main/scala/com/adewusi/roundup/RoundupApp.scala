@@ -14,12 +14,10 @@ import java.util.UUID
 
 object RoundupApp {
 
-  def run(startDate: LocalDate, isDryRun: Boolean): IO[Either[AppError, RoundupResult]] =
+  def run(startDate: LocalDate, isDryRun: Boolean, goalRepoRef: Ref[IO, Option[UUID]], transferRepoRef: Ref[IO, Set[TransferRecord]]): IO[Either[AppError, RoundupResult]] =
     Config.load.flatMap { config =>
       EmberClientBuilder.default[IO].build.use { client =>
         for {
-          transactionRepoRef <- Ref.of[IO, Set[TransferRecord]](Set.empty)
-          goalRepoRef <- Ref.of[IO, Option[UUID]](None)
           result <- {
             implicit val starlingAccountsApi: StarlingAccountsApi[IO] = StarlingAccountsApi.impl[IO](client)
             implicit val starlingTransactionApi: StarlingTransactionApi[IO] = StarlingTransactionApi.impl[IO](client, config)
@@ -29,7 +27,7 @@ object RoundupApp {
             implicit val transactionClient: TransactionClient[IO] = TransactionClient.impl[IO]
             implicit val transactionValidator: TransactionValidator = TransactionValidator.impl
             implicit val savingsGoalClient: SavingsGoalClient[IO] = if (isDryRun) SavingsGoalClient.dryRun[IO] else SavingsGoalClient.impl[IO]
-            implicit val transferRepository: TransferRepository[IO] = if (isDryRun) TransferRepository.dryRun[IO](transactionRepoRef) else TransferRepository.inMemoryTransferRepository[IO](transactionRepoRef)
+            implicit val transferRepository: TransferRepository[IO] = if (isDryRun) TransferRepository.dryRun[IO](transferRepoRef) else TransferRepository.inMemoryTransferRepository[IO](transferRepoRef)
             implicit val goalRepository: GoalRepository[IO] = if (isDryRun) GoalRepository.dryRun[IO](goalRepoRef) else GoalRepository.inMemoryGoalRepository[IO](goalRepoRef)
             implicit val goalService: GoalService[IO] = if (isDryRun) GoalService.dryRun[IO] else GoalService.impl[IO]
 

@@ -9,7 +9,8 @@ import java.util.UUID
 case class StarlingConfig(
     accessToken: String,
     baseUrl: String,
-    initialGoalId: Option[UUID]
+    initialGoalId: Option[UUID],
+    startDate: Option[String] = None
 )
 
 case class AppConfig(

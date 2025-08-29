@@ -1,8 +1,12 @@
 package com.adewusi.roundup
 
+import cats.effect.kernel.Ref
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits._
 import com.adewusi.roundup.cli.Cli._
+import com.adewusi.roundup.model.TransferRecord
+
+import java.util.UUID
 
 object Main extends IOApp {
 
@@ -14,9 +18,14 @@ object Main extends IOApp {
       case Right(cliArgs) =>
         val mode = if (cliArgs.isDryRun) "🔍 Dry run" else "🚀 Live run"
         IO.println(s"$mode starting from ${cliArgs.startDate}") *> {
-          RoundupApp.run(cliArgs.startDate, cliArgs.isDryRun).flatMap {
-            case Left(e) => IO.println(s"Error: $e")
-            case Right(result) => IO.println(s"✅ Done - ${result.amountMinorUnits}p transferred to savings goal UUID ${result.goalId}")
+          for {
+            transferRef <- Ref.of[IO, Set[TransferRecord]](Set.empty)
+            goalRef <- Ref.of[IO, Option[UUID]](None)
+          } yield {
+            RoundupApp.run(cliArgs.startDate, cliArgs.isDryRun, goalRepoRef = goalRef, transferRepoRef = transferRef).flatMap {
+              case Left(e) => IO.println(s"Error: $e")
+              case Right(result) => IO.println(s"✅ Done - ${result.amountMinorUnits}p transferred to savings goal UUID ${result.goalId}")
+            }
           }
         }.as(ExitCode.Success)
     }
