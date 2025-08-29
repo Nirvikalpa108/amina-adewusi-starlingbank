@@ -1,11 +1,14 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.services
 
 import cats.effect.IO
-import com.adewusi.roundup.clients._
+import com.adewusi.roundup.clients.{
+  AccountClient,
+  SavingsGoalClient,
+  TransactionClient
+}
 import com.adewusi.roundup.domain.{AccountSelector, TransactionValidator}
 import com.adewusi.roundup.model._
-import com.adewusi.roundup.repository._
-import com.adewusi.roundup.services.GoalService
+import com.adewusi.roundup.repository.{GoalRepository, TransferRepository}
 
 import java.time.{LocalDate, ZonedDateTime}
 import java.util.UUID
@@ -171,12 +174,14 @@ trait RoundupSpecUtils {
       validateRoundupResponse: Either[AppError, Long]
   ): TransactionValidator = new TransactionValidator {
     override def validateTransactions(
-        transactions: List[TransactionFeedItem], mainCategoryUid: UUID
+        transactions: List[TransactionFeedItem],
+        mainCategoryUid: UUID
     ): Either[AppError, List[TransactionFeedItem]] =
       validateTransactionsResponse
 
     override def validateRoundupAmount(
-        transactions: List[TransactionFeedItem], mainCategoryUid: UUID
+        transactions: List[TransactionFeedItem],
+        mainCategoryUid: UUID
     ): Either[AppError, Long] = validateRoundupResponse
   }
 }

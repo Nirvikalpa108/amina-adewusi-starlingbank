@@ -10,9 +10,9 @@ trait AccountClient[F[_]] {
 }
 
 object AccountClient {
-  def impl[F[_]: Concurrent](implicit starlingAccountsApi: StarlingAccountsApi[F]): AccountClient[F] = new AccountClient[F] {
+  def impl[F[_]: Concurrent](config: AppConfig)(implicit starlingAccountsApi: StarlingAccountsApi[F]): AccountClient[F] = new AccountClient[F] {
     def fetchAccounts: F[Either[AppError, List[Account]]] = {
-      starlingAccountsApi.getAccounts().attempt.map{
+      starlingAccountsApi.getAccounts(config.starling.accessToken).attempt.map{
         case Right(response) => Right(response.accounts)
         case Left(error) => Left(GenericError(s"Failed to fetch accounts: ${error.getMessage}"))
       }

@@ -1,11 +1,10 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.services
 
 import cats.effect._
 import com.adewusi.roundup.clients._
 import com.adewusi.roundup.domain.{AccountSelector, TransactionValidator}
 import com.adewusi.roundup.model._
 import com.adewusi.roundup.repository._
-import com.adewusi.roundup.services.{GoalService, RoundupService}
 import munit.CatsEffectSuite
 
 import java.time.LocalDate
@@ -41,7 +40,7 @@ class RoundupServiceSpec extends CatsEffectSuite with RoundupSpecUtils {
       transferRepo: TransferRepository[IO],
       selector: AccountSelector,
       validator: TransactionValidator,
-      expectedResult: Either[AppError, Unit]
+      expectedResult: Either[AppError, RoundupResult]
   )
 
   private val testScenarios = List(
@@ -73,7 +72,7 @@ class RoundupServiceSpec extends CatsEffectSuite with RoundupSpecUtils {
         validateTransactionsResponse = Right(transactions),
         validateRoundupResponse = Right(expectedRoundup.minorUnits)
       ),
-      expectedResult = Right(())
+      expectedResult = Right(RoundupResult(expectedRoundup.minorUnits, goal.savingsGoalUid))
     ),
     TestScenario(
       name = "account client fails",
@@ -232,7 +231,7 @@ class RoundupServiceSpec extends CatsEffectSuite with RoundupSpecUtils {
       implicit val selector: AccountSelector = scenario.selector
       implicit val validator: TransactionValidator = scenario.validator
 
-      val resultIO: IO[Either[AppError, Unit]] =
+      val resultIO: IO[Either[AppError, RoundupResult]] =
         RoundupService.processRoundups[IO](startDate, testConfig()).value
 
       resultIO.assertEquals(scenario.expectedResult)

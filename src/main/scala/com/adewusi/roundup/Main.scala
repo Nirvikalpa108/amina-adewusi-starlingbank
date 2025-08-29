@@ -16,7 +16,7 @@ object Main extends IOApp {
         IO.println(s"$mode starting from ${cliArgs.startDate}") *> {
           RoundupApp.run(cliArgs.startDate, cliArgs.isDryRun).flatMap {
             case Left(e) => IO.println(s"Error: $e")
-            case Right(_) => IO.println("✅ Done")
+            case Right(result) => IO.println(s"✅ Done - ${result.amountMinorUnits}p transferred to savings goal UUID ${result.goalId}")
           }
         }.as(ExitCode.Success)
     }

@@ -63,5 +63,29 @@ object SavingsGoalClient {
     }
   }
 
-  def dryRun[F[_] : Concurrent](implicit starlingSavingsGoalsApi: StarlingSavingsGoalsApi[F]): SavingsGoalClient[F] = ???
+  def dryRun[F[_] : Concurrent]: SavingsGoalClient[F] = new SavingsGoalClient[F] {
+    override def getGoal(goal: UUID, accountUid: UUID): F[Either[AppError, SavingsGoal]] =
+      Concurrent[F].pure(
+        Right(
+          SavingsGoal(
+            savingsGoalUid = goal,
+            name = "Dry Run Goal",
+            target = None,
+            totalSaved = CurrencyAndAmount("GBP", 0),
+            savedPercentage = Some(0),
+            state = "ACTIVE"
+          )
+        )
+      )
+
+    override def createGoal(accountUid: UUID): F[Either[AppError, UUID]] = {
+      val dryRunGoalId = UUID.nameUUIDFromBytes(s"dry-run-goal-${accountUid}".getBytes)
+      Concurrent[F].pure(Right(dryRunGoalId))
+    }
+
+    override def transferToGoal(accountUid: UUID, goal: UUID, amountMinorUnits: Long): F[Either[AppError, AddMoneyResponse]] =
+      Concurrent[F].pure(
+        Right(AddMoneyResponse(success = true, transferUid = UUID.randomUUID()))
+      )
+  }
 }

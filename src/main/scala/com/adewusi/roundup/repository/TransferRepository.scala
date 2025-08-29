@@ -48,5 +48,8 @@ object TransferRepository {
       }
     }
   }
-  def dryRun[F[_]: Sync](ref: Ref[F, Set[TransferRecord]]): TransferRepository[F] = ???
+  def dryRun[F[_]: Sync](ref: Ref[F, Set[TransferRecord]]): TransferRepository[F] = new TransferRepository[F] {
+    override def isEligibleForTransfer(goal: UUID, startDate: LocalDate, amountMinorUnits: Long): F[Either[AppError, Boolean]] = TransferRepository.inMemoryTransferRepository(ref).isEligibleForTransfer(goal, startDate, amountMinorUnits)
+    override def recordTransfer(goal: UUID, startDate: LocalDate, amountMinorUnits: Long, transfer: AddMoneyResponse): F[Either[AppError, Unit]] = ().asRight[AppError].pure[F] //do nothing
+  }
 }

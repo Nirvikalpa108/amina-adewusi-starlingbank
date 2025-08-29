@@ -26,7 +26,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
 
   private def withApi(httpApp: HttpApp[IO])(f: StarlingAccountsApi[IO] => IO[Unit]): IO[Unit] = {
     val client = Client.fromHttpApp(httpApp)
-    val api    = StarlingAccountsApi.impl[IO](client, mockConfig)
+    val api    = StarlingAccountsApi.impl[IO](client)
     f(api)
   }
 
@@ -70,7 +70,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
     }
 
     withApi(httpApp) { api =>
-      api.getAccounts().map { response =>
+      api.getAccounts(mockConfig.starling.accessToken).map { response =>
         assertEquals(response, expectedResponse)
         assertEquals(response.accounts.head.currency, "GBP")
       }
@@ -81,7 +81,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
     val httpApp = HttpApp[IO](_ => Response[IO](Status.Unauthorized).pure[IO])
 
     withApi(httpApp) { api =>
-      api.getAccounts().attempt.map { result =>
+      api.getAccounts(mockConfig.starling.accessToken).attempt.map { result =>
         assert(result.isLeft, "Should fail with HTTP error")
       }
     }
@@ -96,7 +96,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
     }
 
     withApi(httpApp) { api =>
-      api.getAccounts().attempt.map { result =>
+      api.getAccounts(mockConfig.starling.accessToken).attempt.map { result =>
         assert(result.isLeft, "Should fail with JSON parsing error")
       }
     }

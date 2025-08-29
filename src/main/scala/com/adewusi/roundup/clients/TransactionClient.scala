@@ -15,8 +15,8 @@ trait TransactionClient[F[_]] {
 }
 
 object TransactionClient {
-  def impl[F[_]: Concurrent](
-      implicit starlingTransactionApi: StarlingTransactionApi[F]
+  def impl[F[_]: Concurrent](implicit
+      starlingTransactionApi: StarlingTransactionApi[F]
   ): TransactionClient[F] =
     new TransactionClient[F] {
       def fetchTransactions(

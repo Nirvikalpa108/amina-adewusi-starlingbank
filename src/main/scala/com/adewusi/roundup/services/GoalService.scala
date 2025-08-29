@@ -28,5 +28,10 @@ object GoalService {
     }
   }
 
-  def dryRun[F[_]: Monad](implicit goalRepository: GoalRepository[F], savingsGoalClient: SavingsGoalClient[F]): GoalService[F] = ???
+  def dryRun[F[_]: Monad]: GoalService[F] = new GoalService[F] {
+    override def getOrCreateGoal(config: AppConfig, accountUid: UUID): F[Either[AppError, UUID]] = {
+      val goalId = config.starling.initialGoalId.getOrElse(UUID.randomUUID())
+      Monad[F].pure(Right(goalId))
+    }
+  }
 }

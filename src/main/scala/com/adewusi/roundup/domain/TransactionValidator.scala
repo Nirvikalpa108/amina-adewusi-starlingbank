@@ -6,10 +6,12 @@ import java.util.UUID
 
 trait TransactionValidator {
   def validateTransactions(
-      transactions: List[TransactionFeedItem], mainCategoryUid: UUID
+      transactions: List[TransactionFeedItem],
+      mainCategoryUid: UUID
   ): Either[AppError, List[TransactionFeedItem]]
   def validateRoundupAmount(
-      transactions: List[TransactionFeedItem], mainCategoryUid: UUID
+      transactions: List[TransactionFeedItem],
+      mainCategoryUid: UUID
   ): Either[AppError, Long]
 }
 
@@ -18,16 +20,19 @@ object TransactionValidator {
     new TransactionValidator {
 
       def validateTransactions(
-          transactions: List[TransactionFeedItem], mainCategoryUid: UUID
+          transactions: List[TransactionFeedItem],
+          mainCategoryUid: UUID
       ): Either[AppError, List[TransactionFeedItem]] = {
-        val validTransactions = transactions.filter(isEligible(_, mainCategoryUid))
+        val validTransactions =
+          transactions.filter(isEligible(_, mainCategoryUid))
 
         if (validTransactions.isEmpty) { Left(NoTransactions) }
         else { Right(validTransactions) }
       }
 
       def validateRoundupAmount(
-          transactions: List[TransactionFeedItem] , mainCategoryUid: UUID
+          transactions: List[TransactionFeedItem],
+          mainCategoryUid: UUID
       ): Either[AppError, Long] = {
         validateTransactions(transactions, mainCategoryUid) match {
           case Left(error) => Left(error)
@@ -52,16 +57,24 @@ object TransactionValidator {
           tx.roundUp.isEmpty &&
           tx.totalFeeAmount.isEmpty &&
           tx.status != "ACCOUNT_CHECK" &&
-          !Set("BANK_CHARGE", "INTEREST_PAYMENT").contains(tx.spendingCategory) &&
+          !Set("BANK_CHARGE", "INTEREST_PAYMENT").contains(
+            tx.spendingCategory
+          ) &&
           !isInternalTransfer(tx)
 
       private def isInternalTransfer(tx: TransactionFeedItem): Boolean =
         tx.counterPartyType match {
-          case "PAYEE" if tx.counterPartyName.exists(_.toLowerCase.contains("starling")) => true
+          case "PAYEE"
+              if tx.counterPartyName.exists(
+                _.toLowerCase.contains("starling")
+              ) =>
+            true
           case _ => false
         }
 
-      private def calculateRoundupForTransaction(transaction: TransactionFeedItem): Long = {
+      private def calculateRoundupForTransaction(
+          transaction: TransactionFeedItem
+      ): Long = {
         // The transaction `amount.minorUnits` is in pence (if GBP).
         // e.g. £4.35 = 435, £5.00 = 500
 

@@ -2,13 +2,9 @@ package com.adewusi.roundup.services
 
 import cats.data.EitherT
 import cats.effect.Sync
-import com.adewusi.roundup.clients.{
-  AccountClient,
-  SavingsGoalClient,
-  TransactionClient
-}
+import com.adewusi.roundup.clients.{AccountClient, SavingsGoalClient, TransactionClient}
 import com.adewusi.roundup.domain.{AccountSelector, TransactionValidator}
-import com.adewusi.roundup.model.{AlreadyTransferred, AppConfig, AppError}
+import com.adewusi.roundup.model.{AlreadyTransferred, AppConfig, AppError, RoundupResult, ZeroRoundup}
 import com.adewusi.roundup.repository.{GoalRepository, TransferRepository}
 
 import java.time.LocalDate
@@ -27,43 +23,20 @@ object RoundupService {
       transferLedger: TransferRepository[F],
       accountSelector: AccountSelector,
       transactionValidator: TransactionValidator
-  ): EitherT[F, AppError, Unit] = {
+  ): EitherT[F, AppError, RoundupResult] = {
     for {
       accounts <- EitherT(accountClient.fetchAccounts)
       account <- EitherT.fromEither(accountSelector.getCorrectAccount(accounts))
-      transactions <- EitherT(
-        transactionClient.fetchTransactions(account, startDate)
-      )
-      validatedTransactions <- EitherT.fromEither(
-        transactionValidator.validateTransactions(
-          transactions,
-          account.defaultCategory
-        )
-      )
-      roundup <- EitherT.fromEither(
-        transactionValidator.validateRoundupAmount(
-          validatedTransactions,
-          account.defaultCategory
-        )
-      )
-      goalUuid <- EitherT(
-        goalService.getOrCreateGoal(config, account.accountUid)
-      )
+      transactions <- EitherT(transactionClient.fetchTransactions(account, startDate))
+      validatedTransactions <- EitherT.fromEither(transactionValidator.validateTransactions(transactions, account.defaultCategory))
+      roundup <- EitherT.fromEither(transactionValidator.validateRoundupAmount(validatedTransactions, account.defaultCategory))
+      _ <- EitherT.cond[F](roundup > 0, (), ZeroRoundup(s"Roundup is 0 for $startDate, nothing to process"))
+      goalUuid <- EitherT(goalService.getOrCreateGoal(config, account.accountUid))
       _ <- EitherT(goalRepository.persistGoal(goalUuid))
-      needsProcessing <- EitherT(
-        transferLedger.isEligibleForTransfer(goalUuid, startDate, roundup)
-      )
-      _ <- EitherT.cond[F](
-        needsProcessing,
-        (),
-        AlreadyTransferred(s"Roundup for $startDate already processed")
-      )
-      transfer <- EitherT(
-        savingsGoalClient.transferToGoal(account.accountUid, goalUuid, roundup)
-      )
-      _ <- EitherT(
-        transferLedger.recordTransfer(goalUuid, startDate, roundup, transfer)
-      )
-    } yield ()
+      needsProcessing <- EitherT(transferLedger.isEligibleForTransfer(goalUuid, startDate, roundup))
+      _ <- EitherT.cond[F](needsProcessing, (), AlreadyTransferred(s"Roundup for $startDate already processed"))
+      transfer <- EitherT(savingsGoalClient.transferToGoal(account.accountUid, goalUuid, roundup))
+      _ <- EitherT(transferLedger.recordTransfer(goalUuid, startDate, roundup, transfer))
+    } yield RoundupResult(roundup, goalUuid)
   }
 }

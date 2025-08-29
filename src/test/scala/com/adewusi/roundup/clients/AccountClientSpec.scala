@@ -9,6 +9,8 @@ import java.util.UUID
 
 class AccountClientSpec extends CatsEffectSuite {
 
+  val testConfig: AppConfig = AppConfig(StarlingConfig("token", "https://api-sandbox.starlingbank.com", None))
+
   // Test data
   val account1 = Account(
     accountUid = UUID.randomUUID(),
@@ -27,28 +29,28 @@ class AccountClientSpec extends CatsEffectSuite {
   )
 
   def apiSuccess(accounts: List[Account]) = new StarlingAccountsApi[IO] {
-    override def getAccounts(): IO[AccountsResponse] = IO.pure(AccountsResponse(accounts))
+    override def getAccounts(accessToken: String): IO[AccountsResponse] = IO.pure(AccountsResponse(accounts))
   }
 
   def apiFailure(error: Throwable) = new StarlingAccountsApi[IO] {
-    override def getAccounts(): IO[AccountsResponse] = IO.raiseError(error)
+    override def getAccounts(accessToken: String): IO[AccountsResponse] = IO.raiseError(error)
   }
 
   test("fetchAccounts returns all accounts when API succeeds with multiple accounts") {
     implicit val starlingAccountsApi: StarlingAccountsApi[IO] = apiSuccess(List(account1, account2))
-    val client = AccountClient.impl[IO]
+    val client = AccountClient.impl[IO](testConfig)
     assertIO(client.fetchAccounts, Right(List(account1, account2)))
   }
 
   test("fetchAccounts returns an empty list when API succeeds with no accounts") {
     implicit val starlingAccountsApi: StarlingAccountsApi[IO] = apiSuccess(Nil)
-    val client = AccountClient.impl[IO]
+    val client = AccountClient.impl[IO](testConfig)
     assertIO(client.fetchAccounts, Right(Nil))
   }
 
   test("fetchAccounts returns an error when API fails with RuntimeException") {
     implicit val starlingAccountsApi: StarlingAccountsApi[IO] = apiFailure(new RuntimeException("network down"))
-    val client = AccountClient.impl[IO]
+    val client = AccountClient.impl[IO](testConfig)
 
     client.fetchAccounts.map { result =>
       assert(result.isLeft)
@@ -61,7 +63,7 @@ class AccountClientSpec extends CatsEffectSuite {
 
   test("fetchAccounts returns an error when API fails with IOException") {
     implicit val starlingAccountsApi: StarlingAccountsApi[IO] = apiFailure(new java.io.IOException("connection timeout"))
-    val client = AccountClient.impl[IO]
+    val client = AccountClient.impl[IO](testConfig)
 
     client.fetchAccounts.map { result =>
       assert(result.isLeft)
@@ -73,7 +75,7 @@ class AccountClientSpec extends CatsEffectSuite {
 
   test("fetchAccounts handles exception without message gracefully") {
     implicit val starlingAccountsApi: StarlingAccountsApi[IO] = apiFailure(new RuntimeException(null: String))
-    val client = AccountClient.impl[IO]
+    val client = AccountClient.impl[IO](testConfig)
 
     client.fetchAccounts.map { result =>
       assert(result.isLeft)

@@ -33,7 +33,7 @@ sealed trait DomainError extends AppError
 sealed trait InfraError extends AppError
 
 case object NoTransactions extends DomainError
-case object ZeroRoundupAmount extends DomainError
+final case class ZeroRoundup(reason: String) extends DomainError
 case object NoAccount extends DomainError
 final case class InvalidStoredSavingsGoalUuid(reason: String) extends DomainError
 final case class AlreadyTransferred(reason: String) extends DomainError
@@ -45,3 +45,5 @@ final case class FileReadError(reason: String) extends InfraError
 final case class FileWriteError(reason: String) extends InfraError
 
 case class CliArgs(startDate: LocalDate, isDryRun: Boolean = false, goalId: Option[UUID])
+
+final case class RoundupResult(amountMinorUnits: Long, goalId: UUID)

@@ -21,5 +21,8 @@ object GoalRepository {
         goalRef.set(Some(goal)).map(_.asRight[AppError])
     }
   }
-  def dryRun[F[_]: Sync](goalRef: Ref[F, Option[UUID]]): GoalRepository[F] = ???
+  def dryRun[F[_]: Sync](goalRef: Ref[F, Option[UUID]]): GoalRepository[F] = new GoalRepository[F] {
+    override def readGoal(config: AppConfig): F[Either[AppError, Option[UUID]]] = GoalRepository.inMemoryGoalRepository[F](goalRef).readGoal(config)
+    override def persistGoal(goal: UUID): F[Either[AppError, Unit]] = ().asRight[AppError].pure[F] //do nothing
+  }
 }
