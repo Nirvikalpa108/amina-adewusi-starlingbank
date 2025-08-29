@@ -48,4 +48,5 @@ object TransferRepository {
       }
     }
   }
+  def dryRun[F[_]: Sync](ref: Ref[F, Set[TransferRecord]]): TransferRepository[F] = ???
 }

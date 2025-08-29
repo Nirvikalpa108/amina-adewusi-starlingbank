@@ -21,4 +21,5 @@ object GoalRepository {
         goalRef.set(Some(goal)).map(_.asRight[AppError])
     }
   }
+  def dryRun[F[_]: Sync](goalRef: Ref[F, Option[UUID]]): GoalRepository[F] = ???
 }

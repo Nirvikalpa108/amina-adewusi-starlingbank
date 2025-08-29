@@ -1,4 +1,4 @@
-package com.adewusi.roundup
+package com.adewusi.roundup.delete
 
 import cats.Applicative
 import cats.implicits._

@@ -1,7 +1,7 @@
 package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
-import com.adewusi.roundup.RoundupRoutes
+import com.adewusi.roundup.delete.RoundupRoutes
 import com.adewusi.roundup.model._
 import munit.CatsEffectSuite
 import org.http4s._

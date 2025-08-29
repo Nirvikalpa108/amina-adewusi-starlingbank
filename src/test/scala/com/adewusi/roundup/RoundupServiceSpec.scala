@@ -5,13 +5,13 @@ import com.adewusi.roundup.clients._
 import com.adewusi.roundup.domain.{AccountSelector, TransactionValidator}
 import com.adewusi.roundup.model._
 import com.adewusi.roundup.repository._
-import com.adewusi.roundup.services.GoalService
+import com.adewusi.roundup.services.{GoalService, RoundupService}
 import munit.CatsEffectSuite
 
 import java.time.LocalDate
 import java.util.UUID
 
-class RoundupSpec extends CatsEffectSuite with RoundupSpecUtils {
+class RoundupServiceSpec extends CatsEffectSuite with RoundupSpecUtils {
 
   private val startDate = LocalDate.of(2025, 1, 1)
   private val accounts = AccountsResponse(List(testAccount()))
@@ -233,7 +233,7 @@ class RoundupSpec extends CatsEffectSuite with RoundupSpecUtils {
       implicit val validator: TransactionValidator = scenario.validator
 
       val resultIO: IO[Either[AppError, Unit]] =
-        Roundup.processRoundups[IO](startDate, testConfig()).value
+        RoundupService.processRoundups[IO](startDate, testConfig()).value
 
       resultIO.assertEquals(scenario.expectedResult)
     }

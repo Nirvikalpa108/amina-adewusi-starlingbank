@@ -13,7 +13,7 @@ trait GoalService[F[_]] {
 }
 
 object GoalService {
-  def impl[F[_]: Monad](goalRepository: GoalRepository[F], savingsGoalClient: SavingsGoalClient[F]): GoalService[F] = new GoalService[F] {
+  def impl[F[_]: Monad](implicit goalRepository: GoalRepository[F], savingsGoalClient: SavingsGoalClient[F]): GoalService[F] = new GoalService[F] {
     def getOrCreateGoal(config: AppConfig, accountUid: UUID): F[Either[AppError, UUID]] = {
       val result = for {
         maybeGoal <- EitherT(goalRepository.readGoal(config))
@@ -27,4 +27,6 @@ object GoalService {
       result.value
     }
   }
+
+  def dryRun[F[_]: Monad](implicit goalRepository: GoalRepository[F], savingsGoalClient: SavingsGoalClient[F]): GoalService[F] = ???
 }

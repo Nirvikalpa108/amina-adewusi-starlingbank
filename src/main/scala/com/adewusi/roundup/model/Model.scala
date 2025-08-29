@@ -44,4 +44,4 @@ final case class GenericError(reason: String) extends InfraError
 final case class FileReadError(reason: String) extends InfraError
 final case class FileWriteError(reason: String) extends InfraError
 
-case class CliArgs(startDate: LocalDate, dryRun: Boolean = true, goalId: Option[UUID])
+case class CliArgs(startDate: LocalDate, isDryRun: Boolean = true, goalId: Option[UUID])

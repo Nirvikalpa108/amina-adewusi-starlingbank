@@ -14,7 +14,7 @@ trait SavingsGoalClient[F[_]] {
 }
 
 object SavingsGoalClient {
-  def impl[F[_] : Concurrent](starlingSavingsGoalsApi: StarlingSavingsGoalsApi[F]): SavingsGoalClient[F] = new SavingsGoalClient[F] {
+  def impl[F[_] : Concurrent](implicit starlingSavingsGoalsApi: StarlingSavingsGoalsApi[F]): SavingsGoalClient[F] = new SavingsGoalClient[F] {
     override def getGoal(goal: UUID, accountUid: UUID): F[Either[AppError, SavingsGoal]] = {
       starlingSavingsGoalsApi.getSavingsGoals(accountUid.toString).attempt.map {
         case Right(savingsGoalsResponse) =>
@@ -62,4 +62,6 @@ object SavingsGoalClient {
       }
     }
   }
+
+  def dryRun[F[_] : Concurrent](implicit starlingSavingsGoalsApi: StarlingSavingsGoalsApi[F]): SavingsGoalClient[F] = ???
 }

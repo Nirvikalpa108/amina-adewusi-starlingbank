@@ -17,7 +17,7 @@ class CliSpec extends FunSuite {
 
     assertEquals(result, Right(CliArgs(
       startDate = LocalDate.of(2024, 1, 1),
-      dryRun = false,
+      isDryRun = false,
       goalId = None
     )))
   }
@@ -28,7 +28,7 @@ class CliSpec extends FunSuite {
 
     assertEquals(result, Right(CliArgs(
       startDate = LocalDate.of(2024, 1, 1),
-      dryRun = true,
+      isDryRun = true,
       goalId = None
     )))
   }
@@ -39,7 +39,7 @@ class CliSpec extends FunSuite {
 
     assertEquals(result, Right(CliArgs(
       startDate = LocalDate.of(2024, 1, 1),
-      dryRun = false,
+      isDryRun = false,
       goalId = Some(sampleUuid)
     )))
   }
@@ -50,7 +50,7 @@ class CliSpec extends FunSuite {
 
     assertEquals(result, Right(CliArgs(
       startDate = LocalDate.of(2024, 12, 25),
-      dryRun = true,
+      isDryRun = true,
       goalId = Some(sampleUuid)
     )))
   }
@@ -61,7 +61,7 @@ class CliSpec extends FunSuite {
 
     assertEquals(result, Right(CliArgs(
       startDate = LocalDate.of(2024, 6, 15),
-      dryRun = true,
+      isDryRun = true,
       goalId = Some(sampleUuid)
     )))
   }
@@ -126,7 +126,7 @@ class CliSpec extends FunSuite {
 
     assertEquals(result, Right(CliArgs(
       startDate = LocalDate.of(2024, 1, 1),
-      dryRun = true,
+      isDryRun = true,
       goalId = None
     )))
   }
@@ -137,7 +137,7 @@ class CliSpec extends FunSuite {
 
     assertEquals(result, Right(CliArgs(
       startDate = LocalDate.of(2024, 2, 29),
-      dryRun = false,
+      isDryRun = false,
       goalId = None
     )))
   }

@@ -10,7 +10,7 @@ trait AccountClient[F[_]] {
 }
 
 object AccountClient {
-  def impl[F[_]: Concurrent](starlingAccountsApi: StarlingAccountsApi[F]): AccountClient[F] = new AccountClient[F] {
+  def impl[F[_]: Concurrent](implicit starlingAccountsApi: StarlingAccountsApi[F]): AccountClient[F] = new AccountClient[F] {
     def fetchAccounts: F[Either[AppError, List[Account]]] = {
       starlingAccountsApi.getAccounts().attempt.map{
         case Right(response) => Right(response.accounts)

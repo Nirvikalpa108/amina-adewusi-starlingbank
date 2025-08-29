@@ -1,6 +1,7 @@
 package com.adewusi.roundup
 
 import cats.effect.IO
+import com.adewusi.roundup.delete.{HelloWorld, RoundupRoutes}
 import org.http4s._
 import org.http4s.implicits._
 import munit.CatsEffectSuite
