@@ -57,9 +57,9 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   // getGoal tests
   // ----------------------
   test("getGoal should return Right(goal) if goal exists") {
-    val api =
+    implicit val api: StarlingSavingsGoalsApi[IO] =
       makeApi(getGoalsResult = Right(SavingsGoalsResponse(List(sampleGoal))))
-    val client = SavingsGoalClient.impl[IO](api)
+    val client = SavingsGoalClient.impl[IO]
 
     client.getGoal(goalUid, accountUid).assertEquals(Right(sampleGoal))
   }
@@ -67,8 +67,8 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   test(
     "getGoal should return Left(InvalidStoredSavingsGoalUuid) if goal not found"
   ) {
-    val api = makeApi(getGoalsResult = Right(SavingsGoalsResponse(Nil)))
-    val client = SavingsGoalClient.impl[IO](api)
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(getGoalsResult = Right(SavingsGoalsResponse(Nil)))
+    val client = SavingsGoalClient.impl[IO]
 
     client.getGoal(goalUid, accountUid).map {
       case Left(InvalidStoredSavingsGoalUuid(msg)) =>
@@ -79,8 +79,8 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   }
 
   test("getGoal should return Left(GenericError) if API call fails") {
-    val api = makeApi(getGoalsResult = Left(new RuntimeException("boom")))
-    val client = SavingsGoalClient.impl[IO](api)
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(getGoalsResult = Left(new RuntimeException("boom")))
+    val client = SavingsGoalClient.impl[IO]
 
     client.getGoal(goalUid, accountUid).map {
       case Left(GenericError(msg)) =>
@@ -95,12 +95,12 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   // ----------------------
   test("createGoal should return Right(savingsGoalUid) if creation succeeds") {
     val expectedUid = UUID.randomUUID()
-    val api = makeApi(
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(
       createGoalResult = Right(
         CreateSavingsGoalResponse(savingsGoalUid = expectedUid, success = true)
       )
     )
-    val client = SavingsGoalClient.impl[IO](api)
+    val client = SavingsGoalClient.impl[IO]
 
     client.createGoal(accountUid).assertEquals(Right(expectedUid))
   }
@@ -108,7 +108,7 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   test(
     "createGoal should return Left(GenericError) if API returns success=false"
   ) {
-    val api = makeApi(
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(
       createGoalResult = Right(
         CreateSavingsGoalResponse(
           savingsGoalUid = UUID.randomUUID(),
@@ -116,7 +116,7 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
         )
       )
     )
-    val client = SavingsGoalClient.impl[IO](api)
+    val client = SavingsGoalClient.impl[IO]
 
     client.createGoal(accountUid).map {
       case Left(GenericError(msg)) =>
@@ -129,10 +129,10 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   test(
     "createGoal should return Left(GenericError) if API call fails with exception"
   ) {
-    val api = makeApi(
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(
       createGoalResult = Left(new RuntimeException("kaboom"))
     )
-    val client = SavingsGoalClient.impl[IO](api)
+    val client = SavingsGoalClient.impl[IO]
 
     client.createGoal(accountUid).map {
       case Left(GenericError(msg)) =>
@@ -151,10 +151,10 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
     val expectedTransferUid = UUID.randomUUID()
     val expectedResponse =
       AddMoneyResponse(transferUid = expectedTransferUid, success = true)
-    val api = makeApi(
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(
       addMoneyResult = Right(expectedResponse)
     )
-    val client = SavingsGoalClient.impl[IO](api)
+    val client = SavingsGoalClient.impl[IO]
 
     client
       .transferToGoal(accountUid, goalUid, 158L)
@@ -164,12 +164,12 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   test(
     "transferToGoal should return Left(TransferError) if API returns success=false"
   ) {
-    val api = makeApi(
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(
       addMoneyResult = Right(
         AddMoneyResponse(transferUid = UUID.randomUUID(), success = false)
       )
     )
-    val client = SavingsGoalClient.impl[IO](api)
+    val client = SavingsGoalClient.impl[IO]
 
     client.transferToGoal(accountUid, goalUid, 158L).map {
       case Left(TransferError(msg)) =>
@@ -182,10 +182,10 @@ class SavingsGoalClientSpec extends CatsEffectSuite {
   test(
     "transferToGoal should return Left(TransferError) if API call fails with exception"
   ) {
-    val api = makeApi(
+    implicit val api: StarlingSavingsGoalsApi[IO] = makeApi(
       addMoneyResult = Left(new RuntimeException("network error"))
     )
-    val client = SavingsGoalClient.impl[IO](api)
+    val client = SavingsGoalClient.impl[IO]
 
     client.transferToGoal(accountUid, goalUid, 158L).map {
       case Left(TransferError(msg)) =>

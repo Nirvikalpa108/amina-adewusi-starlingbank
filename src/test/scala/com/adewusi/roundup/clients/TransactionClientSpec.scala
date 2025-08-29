@@ -14,7 +14,7 @@ class TransactionClientSpec extends CatsEffectSuite {
   val testAccount: Account = Account(
     accountUid = testAccountUid,
     accountType = "PRIMARY",
-    defaultCategory = UUID.randomUUID().toString,
+    defaultCategory = UUID.randomUUID(),
     currency = "GBP",
     createdAt = "2023-01-01T00:00:00Z",
     name = "Main Account"
@@ -27,7 +27,7 @@ class TransactionClientSpec extends CatsEffectSuite {
 
   val sampleTransaction = TransactionFeedItem(
     feedItemUid = UUID.randomUUID(),
-    categoryUid = UUID.fromString(testAccount.defaultCategory),
+    categoryUid = testAccount.defaultCategory,
     amount = CurrencyAndAmount("GBP", 1250),
     sourceAmount = CurrencyAndAmount("GBP", 1250),
     direction = "OUT",
@@ -79,7 +79,7 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions returns Right with transactions when API succeeds") {
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       response = IO.pure(TransactionFeedResponse(List(sampleTransaction))),
       accountUidAssertion =
         accountUid => assertEquals(accountUid, testAccountUid),
@@ -89,7 +89,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
 
     assertIO(
       client.fetchTransactions(testAccount, testStartDate),
@@ -100,8 +100,8 @@ class TransactionClientSpec extends CatsEffectSuite {
   test(
     "fetchTransactions returns Right with empty list when API returns empty response"
   ) {
-    val mockApi = createMockApi()
-    val client = TransactionClient.impl[IO](mockApi)
+    implicit val mockApi: StarlingTransactionApi[IO] = createMockApi()
+    val client = TransactionClient.impl[IO]
 
     assertIO(
       client.fetchTransactions(testAccount, testStartDate),
@@ -118,12 +118,12 @@ class TransactionClientSpec extends CatsEffectSuite {
       counterPartyName = Some("Sainsbury's")
     )
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       response =
         IO.pure(TransactionFeedResponse(List(sampleTransaction, transaction2)))
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
 
     assertIO(
       client.fetchTransactions(testAccount, testStartDate),
@@ -133,8 +133,8 @@ class TransactionClientSpec extends CatsEffectSuite {
 
   test("fetchTransactions returns Left with GenericError when API fails") {
     val apiError = new RuntimeException("Network timeout")
-    val mockApi = createMockApi(response = IO.raiseError(apiError))
-    val client = TransactionClient.impl[IO](mockApi)
+    implicit val mockApi = createMockApi(response = IO.raiseError(apiError))
+    val client = TransactionClient.impl[IO]
 
     assertIO(
       client.fetchTransactions(testAccount, testStartDate),
@@ -143,14 +143,14 @@ class TransactionClientSpec extends CatsEffectSuite {
   }
 
   test("fetchTransactions calculates correct 7-day date range in UTC") {
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStartUtc)
         assertEquals(max, expectedEndUtc)
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
 
     assertIO(
       client.fetchTransactions(testAccount, testStartDate),
@@ -162,11 +162,11 @@ class TransactionClientSpec extends CatsEffectSuite {
     val differentUid = UUID.fromString("22222222-2222-2222-2222-222222222222")
     val differentAccount = testAccount.copy(accountUid = differentUid)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       accountUidAssertion = accountUid => assertEquals(accountUid, differentUid)
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
 
     assertIO(
       client.fetchTransactions(differentAccount, testStartDate),
@@ -179,14 +179,14 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = differentStartDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
 
     assertIO(
       client.fetchTransactions(testAccount, differentStartDate),
@@ -199,7 +199,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = leapYearDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
@@ -207,7 +207,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(
       client.fetchTransactions(testAccount, leapYearDate),
       Right(List.empty)
@@ -219,7 +219,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = endOfMonth.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
@@ -227,7 +227,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(
       client.fetchTransactions(testAccount, endOfMonth),
       Right(List.empty)
@@ -239,7 +239,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = endOfYear.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
@@ -248,7 +248,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(
       client.fetchTransactions(testAccount, endOfYear),
       Right(List.empty)
@@ -260,7 +260,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = febInNonLeapYear.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
@@ -268,7 +268,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(
       client.fetchTransactions(testAccount, febInNonLeapYear),
       Right(List.empty)
@@ -282,7 +282,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = testDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min.getOffset, ZoneOffset.UTC)
         assertEquals(max.getOffset, ZoneOffset.UTC)
@@ -291,7 +291,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(client.fetchTransactions(testAccount, testDate), Right(List.empty))
   }
 
@@ -300,7 +300,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = minDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
@@ -308,7 +308,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(client.fetchTransactions(testAccount, minDate), Right(List.empty))
   }
 
@@ -317,7 +317,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = futureDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min, expectedStart)
         assertEquals(max, expectedEnd)
@@ -325,7 +325,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(
       client.fetchTransactions(testAccount, futureDate),
       Right(List.empty)
@@ -337,7 +337,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = dstTransitionDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         assertEquals(min.getOffset, ZoneOffset.UTC)
         assertEquals(max.getOffset, ZoneOffset.UTC)
@@ -346,7 +346,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(
       client.fetchTransactions(testAccount, dstTransitionDate),
       Right(List.empty)
@@ -358,7 +358,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val expectedStart = testDate.atStartOfDay(ZoneOffset.UTC)
     val expectedEnd = expectedStart.plusDays(7)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, max) => {
         val duration = java.time.Duration.between(min, max)
         assertEquals(duration.toDays, 7L)
@@ -367,7 +367,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(client.fetchTransactions(testAccount, testDate), Right(List.empty))
   }
 
@@ -375,7 +375,7 @@ class TransactionClientSpec extends CatsEffectSuite {
     val testDate = LocalDate.of(2023, 8, 10)
     val expectedStart = testDate.atStartOfDay(ZoneOffset.UTC)
 
-    val mockApi = createMockApi(
+    implicit val mockApi = createMockApi(
       dateRangeAssertion = (min, _) => {
         assertEquals(min.getHour, 0)
         assertEquals(min.getMinute, 0)
@@ -385,7 +385,7 @@ class TransactionClientSpec extends CatsEffectSuite {
       }
     )
 
-    val client = TransactionClient.impl[IO](mockApi)
+    val client = TransactionClient.impl[IO]
     assertIO(client.fetchTransactions(testAccount, testDate), Right(List.empty))
   }
 }

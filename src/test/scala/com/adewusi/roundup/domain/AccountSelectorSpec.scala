@@ -10,7 +10,7 @@ class AccountSelectorSpec extends FunSuite {
   val gbpPrimaryAccount = Account(
     accountUid = UUID.randomUUID(),
     accountType = "PRIMARY",
-    defaultCategory = "cat-uid",
+    defaultCategory = UUID.randomUUID(),
     currency = "GBP",
     createdAt = "2023-01-01T00:00:00.000Z",
     name = "Personal"
@@ -19,7 +19,7 @@ class AccountSelectorSpec extends FunSuite {
   val eurAccount = Account(
     accountUid = UUID.randomUUID(),
     accountType = "PRIMARY",
-    defaultCategory = "cat-uid",
+    defaultCategory = UUID.randomUUID(),
     currency = "EUR",
     createdAt = "2023-01-01T00:00:00.000Z",
     name = "Euro Personal"
@@ -28,7 +28,7 @@ class AccountSelectorSpec extends FunSuite {
   val gbpSavingsAccount = Account(
     accountUid = UUID.randomUUID(),
     accountType = "SAVINGS",
-    defaultCategory = "cat-uid",
+    defaultCategory = UUID.randomUUID(),
     currency = "GBP",
     createdAt = "2023-01-01T00:00:00.000Z",
     name = "GBP Savings"
@@ -37,7 +37,7 @@ class AccountSelectorSpec extends FunSuite {
   val gbpBusinessAccount = Account(
     accountUid = UUID.randomUUID(),
     accountType = "BUSINESS",
-    defaultCategory = "cat-uid",
+    defaultCategory = UUID.randomUUID(),
     currency = "GBP",
     createdAt = "2023-01-01T00:00:00.000Z",
     name = "Business Account"

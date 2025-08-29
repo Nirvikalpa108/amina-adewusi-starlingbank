@@ -39,14 +39,14 @@ class GoalServiceSpec extends CatsEffectSuite {
       )
   ): GoalService[IO] = {
 
-    val repo = new GoalRepository[IO] {
+    implicit val repo: GoalRepository[IO] = new GoalRepository[IO] {
       def readGoal(config: AppConfig): IO[Either[AppError, Option[UUID]]] =
         IO.pure(readGoalResult)
       def persistGoal(goalId: UUID): IO[Either[AppError, Unit]] =
         IO.pure(persistGoalResult)
     }
 
-    val client = new SavingsGoalClient[IO] {
+    implicit val client: SavingsGoalClient[IO] = new SavingsGoalClient[IO] {
       def getGoal(
           goalId: UUID,
           accountUid: UUID
@@ -63,7 +63,7 @@ class GoalServiceSpec extends CatsEffectSuite {
         IO.pure(Left(GenericError("transferToGoal not implemented in test")))
     }
 
-    GoalService.impl(repo, client)
+    GoalService.impl[IO]
   }
 
   test("getOrCreateGoal creates and persists goal when no existing goal") {

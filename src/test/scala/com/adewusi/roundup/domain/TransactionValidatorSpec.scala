@@ -9,7 +9,7 @@ import java.util.UUID
 class TransactionValidatorSpec extends CatsEffectSuite {
 
   private val mainCategoryUid = UUID.randomUUID()
-  private val validator = TransactionValidator.impl(mainCategoryUid)
+  private val validator = TransactionValidator.impl
 
   private def createValidTransaction(
       amountMinorUnits: Long,
@@ -68,7 +68,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       createValidTransaction(100L) // £1.00
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -90,7 +90,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       createValidTransaction(150L, status = "PENDING") // Invalid - wrong status
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -114,7 +114,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       createValidTransaction(150L, status = "PENDING") // Invalid - wrong status
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isLeft, true)
     result.left.foreach { error =>
@@ -125,7 +125,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
   test(
     "validateTransactions should return NoTransactions error for empty list"
   ) {
-    val result = validator.validateTransactions(List.empty)
+    val result = validator.validateTransactions(List.empty, mainCategoryUid)
 
     assertEquals(result.isLeft, true)
     result.left.foreach { error =>
@@ -145,7 +145,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - wrong category
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -165,7 +165,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - no settlement time
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -187,7 +187,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - has roundUp
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -208,7 +208,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - has fee
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -226,7 +226,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - BANK_CHARGE
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -246,7 +246,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - INTEREST_PAYMENT
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -265,7 +265,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - internal transfer
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -283,7 +283,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - ACCOUNT_CHECK status
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -301,7 +301,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       createValidTransaction(199L) // £1.99 -> 1p roundup
     )
 
-    val result = validator.validateRoundupAmount(transactions)
+    val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { roundupAmount =>
@@ -318,7 +318,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       createValidTransaction(1000L) // £10.00 -> 0p roundup
     )
 
-    val result = validator.validateRoundupAmount(transactions)
+    val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { roundupAmount =>
@@ -335,7 +335,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       createValidTransaction(1000L) // £10.00 -> 0p roundup
     )
 
-    val result = validator.validateRoundupAmount(transactions)
+    val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { roundupAmount =>
@@ -354,7 +354,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       createValidTransaction(300L, currency = "USD") // Invalid - wrong currency
     )
 
-    val result = validator.validateRoundupAmount(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isLeft, true)
     result.left.foreach { error =>
@@ -365,7 +365,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
   test(
     "validateRoundupAmount should return NoTransactions error for empty transaction list"
   ) {
-    val result = validator.validateRoundupAmount(List.empty)
+    val result = validator.validateRoundupAmount(List.empty, mainCategoryUid)
 
     assertEquals(result.isLeft, true)
     result.left.foreach { error =>
@@ -391,7 +391,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       val transaction = createValidTransaction(amount)
       val transactions = List(transaction)
 
-      val result = validator.validateRoundupAmount(transactions)
+      val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
 
       assertEquals(result.isRight, true, s"Failed for amount $amount")
       result.foreach { roundupAmount =>
@@ -426,7 +426,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Invalid - partial match
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>
@@ -446,7 +446,7 @@ class TransactionValidatorSpec extends CatsEffectSuite {
       ) // Valid - not PAYEE type
     )
 
-    val result = validator.validateTransactions(transactions)
+    val result = validator.validateTransactions(transactions, mainCategoryUid)
 
     assertEquals(result.isRight, true)
     result.foreach { validTxs =>

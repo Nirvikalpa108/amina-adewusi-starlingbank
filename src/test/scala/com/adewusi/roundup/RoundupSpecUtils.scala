@@ -26,7 +26,6 @@ trait RoundupSpecUtils {
 
   def testAccount(
       accountType: String = "PRIMARY",
-      defaultCategory: String = "cat-123",
       currency: String = "GBP",
       createdAt: String = "2024-01-01T00:00:00Z",
       name: String = "Personal"
@@ -34,7 +33,7 @@ trait RoundupSpecUtils {
     Account(
       accountUid = UUID.randomUUID(),
       accountType = accountType,
-      defaultCategory = defaultCategory,
+      defaultCategory = UUID.randomUUID(),
       currency = currency,
       createdAt = createdAt,
       name = name
@@ -172,12 +171,12 @@ trait RoundupSpecUtils {
       validateRoundupResponse: Either[AppError, Long]
   ): TransactionValidator = new TransactionValidator {
     override def validateTransactions(
-        transactions: List[TransactionFeedItem]
+        transactions: List[TransactionFeedItem], mainCategoryUid: UUID
     ): Either[AppError, List[TransactionFeedItem]] =
       validateTransactionsResponse
 
     override def validateRoundupAmount(
-        transactions: List[TransactionFeedItem]
+        transactions: List[TransactionFeedItem], mainCategoryUid: UUID
     ): Either[AppError, Long] = validateRoundupResponse
   }
 }
