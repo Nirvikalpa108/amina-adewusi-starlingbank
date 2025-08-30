@@ -124,16 +124,13 @@ trait RoundupSpecUtils {
   ): GoalRepository[IO] = new GoalRepository[IO] {
     def persistGoal(goalId: UUID): IO[Either[AppError, Unit]] = persistResponse
 
-    override def readGoal(
-        config: AppConfig
-    ): IO[Either[AppError, Option[UUID]]] = readResponse
+    override def readGoal: IO[Either[AppError, Option[UUID]]] = readResponse
   }
 
   def createMockGoalService(
       getOrCreateResponse: IO[Either[AppError, UUID]]
   ): GoalService[IO] = new GoalService[IO] {
     def getOrCreateGoal(
-        config: AppConfig,
         accountUid: UUID
     ): IO[Either[AppError, UUID]] = getOrCreateResponse
   }

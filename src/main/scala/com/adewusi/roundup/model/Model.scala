@@ -44,7 +44,6 @@ sealed trait AppError
 sealed trait DomainError extends AppError
 sealed trait InfraError extends AppError
 
-case object NoTransactions extends DomainError
 final case class ZeroRoundup(reason: String) extends DomainError
 case object NoAccount extends DomainError
 final case class InvalidStoredSavingsGoalUuid(reason: String) extends DomainError

@@ -4,7 +4,7 @@ import cats.data.EitherT
 import cats.effect.Sync
 import com.adewusi.roundup.clients.{AccountClient, SavingsGoalClient, TransactionClient}
 import com.adewusi.roundup.domain.{AccountSelector, TransactionValidator}
-import com.adewusi.roundup.model.{AlreadyTransferred, AppConfig, AppError, RoundupResult, ZeroRoundup}
+import com.adewusi.roundup.model.{AlreadyTransferred, AppError, RoundupResult, ZeroRoundup}
 import com.adewusi.roundup.repository.{GoalRepository, TransferRepository}
 
 import java.time.LocalDate
@@ -12,8 +12,7 @@ import java.time.LocalDate
 object RoundupService {
 
   def processRoundups[F[_]: Sync](
-      startDate: LocalDate,
-      config: AppConfig
+      startDate: LocalDate
   )(implicit
       accountClient: AccountClient[F],
       transactionClient: TransactionClient[F],
@@ -31,11 +30,11 @@ object RoundupService {
       validatedTransactions <- EitherT.fromEither(transactionValidator.validateTransactions(transactions, account.defaultCategory))
       roundup <- EitherT.fromEither(transactionValidator.validateRoundupAmount(validatedTransactions, account.defaultCategory))
       _ <- EitherT.cond[F](roundup > 0, (), ZeroRoundup(s"Roundup is 0 for $startDate, nothing to process"))
-      goalUuid <- EitherT(goalService.getOrCreateGoal(config, account.accountUid))
+      goalUuid <- EitherT(goalService.getOrCreateGoal(account.accountUid))
       _ <- EitherT(goalRepository.persistGoal(goalUuid))
       needsProcessing <- EitherT(transferLedger.isEligibleForTransfer(goalUuid, startDate, roundup))
       _ <- EitherT.cond[F](needsProcessing, (), AlreadyTransferred(s"Roundup for $startDate already processed"))
-      transfer <- EitherT(savingsGoalClient.transferToGoal(account.accountUid, goalUuid, roundup))
+      transfer <- EitherT(savingsGoalClient.transferToGoal(accountUid = account.accountUid, goal = goalUuid, amountMinorUnits = roundup))
       _ <- EitherT(transferLedger.recordTransfer(goalUuid, startDate, roundup, transfer))
     } yield RoundupResult(roundup, goalUuid)
   }

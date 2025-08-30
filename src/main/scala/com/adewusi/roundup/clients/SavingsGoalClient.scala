@@ -14,6 +14,13 @@ trait SavingsGoalClient[F[_]] {
 }
 
 object SavingsGoalClient {
+  /**
+    * Implementation of SavingsGoalClient using the StarlingSavingsGoalsApi.
+    *
+    * @param starlingSavingsGoalsApi implicit StarlingSavingsGoalsApi instance
+    * @tparam F effect type with Concurrent capability
+    * @return a SavingsGoalClient implementation
+    */
   def impl[F[_] : Concurrent](implicit starlingSavingsGoalsApi: StarlingSavingsGoalsApi[F]): SavingsGoalClient[F] = new SavingsGoalClient[F] {
     override def getGoal(goal: UUID, accountUid: UUID): F[Either[AppError, SavingsGoal]] = {
       starlingSavingsGoalsApi.getSavingsGoals(accountUid.toString).attempt.map {
@@ -63,6 +70,14 @@ object SavingsGoalClient {
     }
   }
 
+  /**
+    * Dry-run implementation of SavingsGoalClient that simulates API calls without side effects.
+    *
+    * Useful for testing or local development.
+    *
+    * @tparam F effect type with Concurrent capability
+    * @return a SavingsGoalClient implementation that does not perform real API calls
+    */
   def dryRun[F[_] : Concurrent]: SavingsGoalClient[F] = new SavingsGoalClient[F] {
     override def getGoal(goal: UUID, accountUid: UUID): F[Either[AppError, SavingsGoal]] =
       Concurrent[F].pure(

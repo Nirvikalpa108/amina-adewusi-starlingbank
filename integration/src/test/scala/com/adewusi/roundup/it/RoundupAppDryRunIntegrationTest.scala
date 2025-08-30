@@ -25,10 +25,10 @@ class RoundupAppDryRunIntegrationTest extends CatsEffectSuite {
 
       finalGoalId <- goalRef.get
       finalTransfers <- transferRef.get
+      _ <- IO.println(s"RoundupApp.run result: $result")
     } yield {
       assertEquals(finalGoalId, Some(initialGoalId), "GoalRef should be unchanged in dry run")
       assertEquals(finalTransfers, initialTransfers, "TransferRef should be unchanged in dry run")
-      println(s"RoundupApp.run result: $result")
       assert(result.isRight, s"Dry run failed with error: $result")
     }
   }

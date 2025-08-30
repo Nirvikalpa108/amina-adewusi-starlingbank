@@ -9,16 +9,16 @@ import com.adewusi.roundup.repository.GoalRepository
 import java.util.UUID
 
 trait GoalService[F[_]] {
-  def getOrCreateGoal(config: AppConfig, accountUid: UUID): F[Either[AppError, UUID]]
+  def getOrCreateGoal(accountUid: UUID): F[Either[AppError, UUID]]
 }
 
 object GoalService {
   def impl[F[_]: Monad](implicit goalRepository: GoalRepository[F], savingsGoalClient: SavingsGoalClient[F]): GoalService[F] = new GoalService[F] {
-    def getOrCreateGoal(config: AppConfig, accountUid: UUID): F[Either[AppError, UUID]] = {
+    def getOrCreateGoal(accountUid: UUID): F[Either[AppError, UUID]] = {
       val result = for {
-        maybeGoal <- EitherT(goalRepository.readGoal(config))
+        maybeGoal <- EitherT(goalRepository.readGoal)
         goalId <- maybeGoal match {
-          case Some(goal) => EitherT(savingsGoalClient.getGoal(goal, accountUid)).map(_.savingsGoalUid)
+          case Some(goal) => EitherT(savingsGoalClient.getGoal(goal = goal, accountUid = accountUid)).map(_.savingsGoalUid)
           case None       => EitherT(savingsGoalClient.createGoal(accountUid))
         }
         _ <- EitherT(goalRepository.persistGoal(goalId))
@@ -28,9 +28,13 @@ object GoalService {
     }
   }
 
-  def dryRun[F[_]: Monad]: GoalService[F] = new GoalService[F] {
-    override def getOrCreateGoal(config: AppConfig, accountUid: UUID): F[Either[AppError, UUID]] = {
-      val goalId = config.starling.initialGoalId.getOrElse(UUID.randomUUID())
+  /**
+    * Dry run implementation that returns the initialGoalId from config if present,
+    * otherwise a provided UUID.
+    */
+  def dryRun[F[_]: Monad](config: AppConfig): GoalService[F] = new GoalService[F] {
+    override def getOrCreateGoal(accountUid: UUID): F[Either[AppError, UUID]] = {
+      val goalId = config.starling.initialGoalId.getOrElse(UUID.fromString("4FBA270E-9E40-4BAC-AB34-997B91749FA0"))
       Monad[F].pure(Right(goalId))
     }
   }

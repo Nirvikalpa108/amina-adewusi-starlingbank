@@ -39,7 +39,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
   ): GoalService[IO] = {
 
     implicit val repo: GoalRepository[IO] = new GoalRepository[IO] {
-      def readGoal(config: AppConfig): IO[Either[AppError, Option[UUID]]] =
+      def readGoal: IO[Either[AppError, Option[UUID]]] =
         IO.pure(readGoalResult)
       def persistGoal(goalId: UUID): IO[Either[AppError, Unit]] =
         IO.pure(persistGoalResult)
@@ -71,7 +71,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       persistGoalResult = Right(()),
       createGoalResult = Right(testGoalId)
     )
-    service.getOrCreateGoal(testConfig, testAccountId).map { result =>
+    service.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Right(testGoalId))
     }
   }
@@ -83,7 +83,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       persistGoalResult = Right(()),
       getGoalResult = Right(createTestSavingsGoal(existingId))
     )
-    service.getOrCreateGoal(testConfig, testAccountId).map { result =>
+    service.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Right(existingId))
     }
   }
@@ -91,7 +91,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
   test("returns error when readGoal fails") {
     val err = FileReadError("read failed")
     val service = mkService(readGoalResult = Left(err))
-    service.getOrCreateGoal(testConfig, testAccountId).map { result =>
+    service.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Left(err))
     }
   }
@@ -103,7 +103,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       readGoalResult = Right(Some(existingId)),
       getGoalResult = Left(apiErr)
     )
-    service.getOrCreateGoal(testConfig, testAccountId).map { result =>
+    service.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Left(apiErr))
     }
   }
@@ -114,7 +114,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       readGoalResult = Right(None),
       createGoalResult = Left(err)
     )
-    service.getOrCreateGoal(testConfig, testAccountId).map { result =>
+    service.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Left(err))
     }
   }
@@ -126,7 +126,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       createGoalResult = Right(testGoalId),
       persistGoalResult = Left(err)
     )
-    service.getOrCreateGoal(testConfig, testAccountId).map { result =>
+    service.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Left(err))
     }
   }
@@ -139,7 +139,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       getGoalResult = Right(createTestSavingsGoal(existingId)),
       persistGoalResult = Left(err)
     )
-    service.getOrCreateGoal(testConfig, testAccountId).map { result =>
+    service.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Left(err))
     }
   }
@@ -150,9 +150,9 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       starling = testConfig.starling.copy(initialGoalId = Some(configuredGoalId))
     )
 
-    val dryRunService = GoalService.dryRun[IO]
+    val dryRunService = GoalService.dryRun[IO](configWithGoal)
 
-    dryRunService.getOrCreateGoal(configWithGoal, testAccountId).map { result =>
+    dryRunService.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Right(configuredGoalId))
     }
   }
@@ -162,9 +162,9 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
       starling = testConfig.starling.copy(initialGoalId = None)
     )
 
-    val dryRunService = GoalService.dryRun[IO]
+    val dryRunService = GoalService.dryRun[IO](configWithoutGoal)
 
-    dryRunService.getOrCreateGoal(configWithoutGoal, testAccountId).map { result =>
+    dryRunService.getOrCreateGoal(testAccountId).map { result =>
       assert(result.isRight)
       val uuid = result.toOption.get
       val parsed = UUID.fromString(uuid.toString)

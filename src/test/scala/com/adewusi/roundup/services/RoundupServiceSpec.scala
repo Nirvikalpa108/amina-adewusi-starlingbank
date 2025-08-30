@@ -232,7 +232,7 @@ class RoundupServiceSpec extends CatsEffectSuite with RoundupSpecUtils {
       implicit val validator: TransactionValidator = scenario.validator
 
       val resultIO: IO[Either[AppError, RoundupResult]] =
-        RoundupService.processRoundups[IO](startDate, testConfig()).value
+        RoundupService.processRoundups[IO](startDate).value
 
       resultIO.assertEquals(scenario.expectedResult)
     }

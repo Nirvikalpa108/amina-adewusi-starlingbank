@@ -29,10 +29,10 @@ object RoundupApp {
             implicit val savingsGoalClient: SavingsGoalClient[IO] = if (isDryRun) SavingsGoalClient.dryRun[IO] else SavingsGoalClient.impl[IO]
             implicit val transferRepository: TransferRepository[IO] = if (isDryRun) TransferRepository.dryRun[IO](transferRepoRef) else TransferRepository.inMemoryTransferRepository[IO](transferRepoRef)
             implicit val goalRepository: GoalRepository[IO] = if (isDryRun) GoalRepository.dryRun[IO](goalRepoRef) else GoalRepository.inMemoryGoalRepository[IO](goalRepoRef)
-            implicit val goalService: GoalService[IO] = if (isDryRun) GoalService.dryRun[IO] else GoalService.impl[IO]
+            implicit val goalService: GoalService[IO] = if (isDryRun) GoalService.dryRun[IO](config) else GoalService.impl[IO]
 
             RoundupService
-              .processRoundups[IO](startDate = startDate, config)
+              .processRoundups[IO](startDate = startDate)
               .value
           }
         } yield result
