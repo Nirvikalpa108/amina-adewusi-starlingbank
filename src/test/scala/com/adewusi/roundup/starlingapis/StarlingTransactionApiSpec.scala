@@ -2,6 +2,7 @@ package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
+import com.adewusi.roundup.TestUtils
 import com.adewusi.roundup.model._
 import munit.CatsEffectSuite
 import org.http4s._
@@ -14,9 +15,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 
-class StarlingTransactionApiSpec extends CatsEffectSuite {
+class StarlingTransactionApiSpec extends CatsEffectSuite with TestUtils {
 
-  private val testToken       = "test-token"
   private val testAccountUid  = UUID.randomUUID()
 
   private val sampleTxFeedResp: TransactionFeedResponse =
@@ -26,17 +26,9 @@ class StarlingTransactionApiSpec extends CatsEffectSuite {
   private val maxTs: ZonedDateTime = ZonedDateTime.parse("2023-08-08T23:59:59Z")
   private val fmt                  = DateTimeFormatter.ISO_OFFSET_DATE_TIME
 
-  private val mockConfig = AppConfig(
-    starling = StarlingConfig(
-      accessToken   = testToken,
-      baseUrl       = "https://api-sandbox.starlingbank.com",
-      initialGoalId = None
-    )
-  )
-
   private def withApi(httpApp: HttpApp[IO])(f: StarlingTransactionApi[IO] => IO[Unit]): IO[Unit] = {
     val client = Client.fromHttpApp(httpApp)
-    val api    = StarlingTransactionApi.impl[IO](client, mockConfig)
+    val api    = StarlingTransactionApi.impl[IO](client, testConfig)
     f(api)
   }
 

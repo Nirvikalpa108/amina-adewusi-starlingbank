@@ -1,19 +1,18 @@
 package com.adewusi.roundup.services
 
 import cats.effect.IO
+import com.adewusi.roundup.TestUtils
 import com.adewusi.roundup.clients.SavingsGoalClient
 import com.adewusi.roundup.model._
 import com.adewusi.roundup.repository.GoalRepository
 import munit.CatsEffectSuite
+
 import java.util.UUID
 
-class GoalServiceSpec extends CatsEffectSuite {
+class GoalServiceSpec extends CatsEffectSuite with TestUtils {
 
   val testAccountId: UUID = UUID.randomUUID()
   val testGoalId: UUID = UUID.randomUUID()
-  val testConfig: AppConfig = AppConfig(
-    StarlingConfig("token", "https://api-sandbox.starlingbank.com", None)
-  )
 
   private def createTestSavingsGoal(goalId: UUID): SavingsGoal = {
     SavingsGoal(

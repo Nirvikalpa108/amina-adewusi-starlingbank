@@ -2,16 +2,27 @@ package com.adewusi.roundup.model
 
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
+import org.http4s.Uri
+import pureconfig.ConfigReader
+import pureconfig.error.CannotConvert
+import pureconfig.generic.semiauto.deriveReader
 
 import java.time.LocalDate
 import java.util.UUID
 
 case class StarlingConfig(
-    accessToken: String,
-    baseUrl: String,
-    initialGoalId: Option[UUID],
-    startDate: Option[String] = None
+   accessToken: String,
+   baseUri: Uri,
+   initialGoalId: Option[UUID],
+   startDate: Option[String] = None
 )
+
+object StarlingConfig {
+  implicit val uriConfigReader: ConfigReader[Uri] = ConfigReader.fromString { str =>
+    Uri.fromString(str).left.map(err => CannotConvert(str, "Uri", err.message))
+  }
+  implicit val starlingConfigReader: ConfigReader[StarlingConfig] = deriveReader[StarlingConfig]
+}
 
 case class AppConfig(
     starling: StarlingConfig

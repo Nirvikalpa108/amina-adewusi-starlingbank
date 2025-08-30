@@ -2,7 +2,8 @@ package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
-import com.adewusi.roundup.model.{Account, AccountsResponse, AppConfig, StarlingConfig}
+import com.adewusi.roundup.TestUtils
+import com.adewusi.roundup.model.{Account, AccountsResponse}
 import munit.CatsEffectSuite
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec._
@@ -12,17 +13,7 @@ import org.typelevel.ci.CIStringSyntax
 
 import java.util.UUID
 
-class StarlingAccountsApiSpec extends CatsEffectSuite {
-
-  private val testToken = "test-token"
-
-  private val mockConfig = AppConfig(
-    starling = StarlingConfig(
-      accessToken   = testToken,
-      baseUrl       = "https://api-sandbox.starlingbank.com",
-      initialGoalId = None
-    )
-  )
+class StarlingAccountsApiSpec extends CatsEffectSuite with TestUtils {
 
   private def withApi(httpApp: HttpApp[IO])(f: StarlingAccountsApi[IO] => IO[Unit]): IO[Unit] = {
     val client = Client.fromHttpApp(httpApp)
@@ -34,7 +25,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
     assertEquals(request.method, Method.GET)
     assertEquals(
       request.uri.renderString,
-      s"${mockConfig.starling.baseUrl}/api/v2/accounts"
+      s"${testConfig.starling.baseUri}/api/v2/accounts"
     )
 
     assertEquals(
@@ -70,7 +61,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
     }
 
     withApi(httpApp) { api =>
-      api.getAccounts(mockConfig.starling.accessToken).map { response =>
+      api.getAccounts(testConfig.starling.accessToken, testConfig.starling.baseUri).map { response =>
         assertEquals(response, expectedResponse)
         assertEquals(response.accounts.head.currency, "GBP")
       }
@@ -81,7 +72,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
     val httpApp = HttpApp[IO](_ => Response[IO](Status.Unauthorized).pure[IO])
 
     withApi(httpApp) { api =>
-      api.getAccounts(mockConfig.starling.accessToken).attempt.map { result =>
+      api.getAccounts(testConfig.starling.accessToken, testConfig.starling.baseUri).attempt.map { result =>
         assert(result.isLeft, "Should fail with HTTP error")
       }
     }
@@ -96,7 +87,7 @@ class StarlingAccountsApiSpec extends CatsEffectSuite {
     }
 
     withApi(httpApp) { api =>
-      api.getAccounts(mockConfig.starling.accessToken).attempt.map { result =>
+      api.getAccounts(testConfig.starling.accessToken, testConfig.starling.baseUri).attempt.map { result =>
         assert(result.isLeft, "Should fail with JSON parsing error")
       }
     }

@@ -42,7 +42,7 @@ class RoundupAppIntegrationTest extends CatsEffectSuite with IntegrationTestUtil
 
           // Cleanup: delete the savings goal from Starling API
           _ <- goalAfterFirstRun.traverse_ { goalId =>
-            deleteSavingsGoal(config.starling.baseUrl, client, config.starling.accessToken, accountUuid, goalId)
+            deleteSavingsGoal(config.starling.baseUri, client, config.starling.accessToken, accountUuid, goalId)
           }
         } yield ()
       }

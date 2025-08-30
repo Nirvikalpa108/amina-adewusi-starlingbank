@@ -2,6 +2,7 @@ package com.adewusi.roundup.starlingapis
 
 import cats.effect.IO
 import cats.implicits.catsSyntaxApplicativeId
+import com.adewusi.roundup.TestUtils
 import com.adewusi.roundup.model._
 import munit.CatsEffectSuite
 import org.http4s._
@@ -12,9 +13,8 @@ import org.typelevel.ci.CIStringSyntax
 
 import java.util.UUID
 
-class StarlingSavingsGoalsApiSpec extends CatsEffectSuite {
+class StarlingSavingsGoalsApiSpec extends CatsEffectSuite with TestUtils {
 
-  private val testToken          = "test-token"
   private val testAccountUid     = "test-account-uid"
   private val testSavingsGoalUid = UUID.randomUUID()
   private val testTransferUid    = UUID.randomUUID()
@@ -31,17 +31,9 @@ class StarlingSavingsGoalsApiSpec extends CatsEffectSuite {
     success = true
   )
 
-  private val mockConfig = AppConfig(
-    starling = StarlingConfig(
-      accessToken   = testToken,
-      baseUrl       = "https://api-sandbox.starlingbank.com",
-      initialGoalId = None
-    )
-  )
-
   private def withApi(httpApp: HttpApp[IO])(f: StarlingSavingsGoalsApi[IO] => IO[Unit]): IO[Unit] = {
     val client = Client.fromHttpApp(httpApp)
-    val api    = StarlingSavingsGoalsApi.impl[IO](client, mockConfig)
+    val api    = StarlingSavingsGoalsApi.impl[IO](client, testConfig)
     f(api)
   }
 
@@ -76,7 +68,7 @@ class StarlingSavingsGoalsApiSpec extends CatsEffectSuite {
         assertEquals(req.method, Method.GET)
         assertEquals(
           req.uri.renderString,
-          s"${mockConfig.starling.baseUrl}/api/v2/account/$testAccountUid/savings-goals"
+          s"${testConfig.starling.baseUri}/api/v2/account/$testAccountUid/savings-goals"
         )
         assertCommonHeaders(req)
       } *> Response[IO](Status.Ok).withEntity(expectedResponse).pure[IO]
@@ -96,7 +88,7 @@ class StarlingSavingsGoalsApiSpec extends CatsEffectSuite {
         assertEquals(req.method, Method.PUT)
         assertEquals(
           req.uri.renderString,
-          s"${mockConfig.starling.baseUrl}/api/v2/account/$testAccountUid/savings-goals"
+          s"${testConfig.starling.baseUri}/api/v2/account/$testAccountUid/savings-goals"
         )
         assertCommonHeaders(req)
         assertEquals(
@@ -126,7 +118,7 @@ class StarlingSavingsGoalsApiSpec extends CatsEffectSuite {
         assertEquals(req.method, Method.PUT)
         assertEquals(
           req.uri.renderString,
-          s"${mockConfig.starling.baseUrl}/api/v2/account/$testAccountUid/savings-goals/$testSavingsGoalUid/add-money/$testTransferUid"
+          s"${testConfig.starling.baseUri}/api/v2/account/$testAccountUid/savings-goals/$testSavingsGoalUid/add-money/$testTransferUid"
         )
         assertCommonHeaders(req)
         assertEquals(

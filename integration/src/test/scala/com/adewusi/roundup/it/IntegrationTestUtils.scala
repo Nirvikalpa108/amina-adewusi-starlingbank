@@ -71,7 +71,7 @@ trait IntegrationTestUtils {
 
   // Helper to delete savings goal via Starling API
   def deleteSavingsGoal(
-      baseUrl: String,
+      baseUrl: Uri,
       client: Client[IO],
       accessToken: String,
       accountId: UUID,

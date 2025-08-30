@@ -12,7 +12,7 @@ trait AccountClient[F[_]] {
 object AccountClient {
   def impl[F[_]: Concurrent](config: AppConfig)(implicit starlingAccountsApi: StarlingAccountsApi[F]): AccountClient[F] = new AccountClient[F] {
     def fetchAccounts: F[Either[AppError, List[Account]]] = {
-      starlingAccountsApi.getAccounts(config.starling.accessToken).attempt.map{
+      starlingAccountsApi.getAccounts(config.starling.accessToken, config.starling.baseUri).attempt.map{
         case Right(response) => Right(response.accounts)
         case Left(error) => Left(GenericError(s"Failed to fetch accounts: ${error.getMessage}"))
       }

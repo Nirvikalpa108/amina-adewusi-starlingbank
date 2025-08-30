@@ -1,14 +1,11 @@
 package com.adewusi.roundup.services
 
 import cats.effect.IO
-import com.adewusi.roundup.clients.{
-  AccountClient,
-  SavingsGoalClient,
-  TransactionClient
-}
+import com.adewusi.roundup.clients.{AccountClient, SavingsGoalClient, TransactionClient}
 import com.adewusi.roundup.domain.{AccountSelector, TransactionValidator}
 import com.adewusi.roundup.model._
 import com.adewusi.roundup.repository.{GoalRepository, TransferRepository}
+import org.http4s.Uri
 
 import java.time.{LocalDate, ZonedDateTime}
 import java.util.UUID
@@ -16,13 +13,13 @@ import java.util.UUID
 trait RoundupSpecUtils {
   def testConfig(
       accessToken: String = "fake-token",
-      baseUrl: String = "http://fake-api",
+      baseUri: Uri = Uri.unsafeFromString("http://fake-api"),
       initialGoalId: Option[UUID] = None
   ): AppConfig =
     AppConfig(
       starling = StarlingConfig(
         accessToken = accessToken,
-        baseUrl = baseUrl,
+        baseUri = baseUri,
         initialGoalId = initialGoalId
       )
     )

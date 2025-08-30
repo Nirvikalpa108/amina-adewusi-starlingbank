@@ -1,17 +1,16 @@
 package com.adewusi.roundup.clients
 
 import cats.effect.IO
+import com.adewusi.roundup.TestUtils
 import com.adewusi.roundup.model._
 import com.adewusi.roundup.starlingapis.StarlingAccountsApi
 import munit.CatsEffectSuite
+import org.http4s.Uri
 
 import java.util.UUID
 
-class AccountClientSpec extends CatsEffectSuite {
+class AccountClientSpec extends CatsEffectSuite with TestUtils {
 
-  val testConfig: AppConfig = AppConfig(StarlingConfig("token", "https://api-sandbox.starlingbank.com", None))
-
-  // Test data
   val account1 = Account(
     accountUid = UUID.randomUUID(),
     accountType = "PRIMARY",
@@ -29,11 +28,11 @@ class AccountClientSpec extends CatsEffectSuite {
   )
 
   def apiSuccess(accounts: List[Account]) = new StarlingAccountsApi[IO] {
-    override def getAccounts(accessToken: String): IO[AccountsResponse] = IO.pure(AccountsResponse(accounts))
+    override def getAccounts(accessToken: String, baseUri: Uri): IO[AccountsResponse] = IO.pure(AccountsResponse(accounts))
   }
 
   def apiFailure(error: Throwable) = new StarlingAccountsApi[IO] {
-    override def getAccounts(accessToken: String): IO[AccountsResponse] = IO.raiseError(error)
+    override def getAccounts(accessToken: String, baseUri: Uri): IO[AccountsResponse] = IO.raiseError(error)
   }
 
   test("fetchAccounts returns all accounts when API succeeds with multiple accounts") {

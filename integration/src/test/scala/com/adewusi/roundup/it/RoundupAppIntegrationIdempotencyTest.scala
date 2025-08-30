@@ -57,11 +57,11 @@ class RoundupAppIntegrationIdempotencyTest extends CatsEffectSuite with Integrat
           _ = assert(goalAfterSecondRun.contains(goalId), "Goal UUID should be the same after second run")
 
           _ <- goalAfterSecondRun.traverse_ { goalId =>
-            deleteSavingsGoal(config.starling.baseUrl, client, config.starling.accessToken, accountUuid, goalId)
+            deleteSavingsGoal(config.starling.baseUri, client, config.starling.accessToken, accountUuid, goalId)
           }
 
           _ <- goalAfterFirstRun.traverse_ { goalId =>
-            deleteSavingsGoal(config.starling.baseUrl, client, config.starling.accessToken, accountUuid, goalId)
+            deleteSavingsGoal(config.starling.baseUri, client, config.starling.accessToken, accountUuid, goalId)
           }
         } yield ()
       }
