@@ -48,7 +48,29 @@ object TransactionValidator {
         }
       }
 
-      def isEligible(tx: TransactionFeedItem, mainCategoryUid: UUID): Boolean =
+      /**
+        * Determines whether a given transaction is eligible for round-up.
+        *
+        * A transaction is considered eligible if it meets all the following criteria:
+        *   - The transaction direction is "OUT" (i.e., an outgoing payment).
+        *   - The transaction currency is GBP.
+        *   - The transaction status is "SETTLED".
+        *   - The transaction has a defined settlement time.
+        *   - The transaction belongs to the specified main category (matching `mainCategoryUid`).
+        *   - The transaction has not already been rounded up (`roundUp` is empty).
+        *   - The transaction does not have any associated fees (`totalFeeAmount` is empty).
+        *   - The transaction status is not "ACCOUNT_CHECK".
+        *   - The spending category is not one of the excluded categories such as "BANK_CHARGE" or "INTEREST_PAYMENT".
+        *   - The transaction is not an internal transfer within Starling accounts.
+        *
+        * @param tx              The transaction to evaluate.
+        * @param mainCategoryUid The UUID of the main category to filter transactions by.
+        * @return true if the transaction is eligible for round-up; false otherwise.
+        */
+      def isEligible(tx: TransactionFeedItem, mainCategoryUid: UUID): Boolean = {
+        val excludedStatuses = Set("ACCOUNT_CHECK")
+        val excludedCategories = Set("BANK_CHARGE", "INTEREST_PAYMENT")
+
         tx.direction == "OUT" &&
           tx.amount.currency == "GBP" &&
           tx.status == "SETTLED" &&
@@ -56,11 +78,10 @@ object TransactionValidator {
           tx.categoryUid == mainCategoryUid &&
           tx.roundUp.isEmpty &&
           tx.totalFeeAmount.isEmpty &&
-          tx.status != "ACCOUNT_CHECK" &&
-          !Set("BANK_CHARGE", "INTEREST_PAYMENT").contains(
-            tx.spendingCategory
-          ) &&
+          !excludedStatuses.contains(tx.status) &&
+          !excludedCategories.contains(tx.spendingCategory) &&
           !isInternalTransfer(tx)
+      }
 
       private def isInternalTransfer(tx: TransactionFeedItem): Boolean =
         tx.counterPartyType match {
@@ -72,31 +93,25 @@ object TransactionValidator {
           case _ => false
         }
 
-      private def calculateRoundupForTransaction(
-          transaction: TransactionFeedItem
-      ): Long = {
-        // The transaction `amount.minorUnits` is in pence (if GBP).
-        // e.g. £4.35 = 435, £5.00 = 500
-
+      /**
+        * Calculates the round-up amount in pence needed to round a transaction's amount
+        * up to the nearest whole pound.
+        *
+        * For example, if the transaction amount is £4.35 (435 pence), the round-up amount
+        * will be 65 pence to reach £5.00.
+        *
+        * Assumes the transaction currency is GBP and that `amount.minorUnits` represents
+        * the amount in pence.
+        *
+        * @param transaction The transaction for which to calculate the round-up amount.
+        * @return The round-up amount in pence (Long). Returns 0 if the amount is already a whole pound.
+        */
+      private def calculateRoundupForTransaction(transaction: TransactionFeedItem): Long = {
         val amountInPence = transaction.amount.minorUnits
-        val poundsInPence = 100L // 100 pence in a pound
+        val poundsInPence = 100L
 
-        // If the value is already a whole pound (no pennies left over),
-        // then no round-up is needed.
-        if (amountInPence % poundsInPence == 0) {
-          0L
-        } else {
-          // Otherwise, figure out the "change" to get to the next full pound.
-          //
-          // Example:
-          //   amountInPence = 435 (£4.35)
-          //   remainder     = 435 % 100 = 35
-          //   roundup       = 100 - 35 = 65p
-          //
-          // That means we would save 65p to *round this spend up* to £5.
-          val remainder = amountInPence % poundsInPence
-          poundsInPence - remainder
-        }
+        if (amountInPence % poundsInPence == 0) 0L
+        else poundsInPence - (amountInPence % poundsInPence)
       }
     }
 }

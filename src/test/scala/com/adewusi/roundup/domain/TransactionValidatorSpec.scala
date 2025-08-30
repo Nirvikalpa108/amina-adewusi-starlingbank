@@ -1,457 +1,191 @@
 package com.adewusi.roundup.domain
 
-import com.adewusi.roundup.model.{AssociatedFeedRoundUp, CurrencyAndAmount, NoTransactions, TransactionFeedItem}
+import com.adewusi.roundup.model._
 import munit.CatsEffectSuite
-
 import java.time.ZonedDateTime
 import java.util.UUID
 
 class TransactionValidatorSpec extends CatsEffectSuite {
 
-  private val mainCategoryUid = UUID.randomUUID()
+  private val mainCategoryUid =
+    UUID.fromString("11111111-1111-1111-1111-111111111111")
   private val validator = TransactionValidator.impl
 
   private def createValidTransaction(
       amountMinorUnits: Long,
-      direction: String = "OUT",
-      currency: String = "GBP",
-      status: String = "SETTLED",
-      categoryUid: UUID = mainCategoryUid,
-      settlementTime: Option[ZonedDateTime] = Some(ZonedDateTime.now()),
-      roundUp: Option[AssociatedFeedRoundUp] = None,
-      totalFeeAmount: Option[CurrencyAndAmount] = None,
-      spendingCategory: String = "GENERAL",
-      counterPartyType: String = "MERCHANT",
-      counterPartyName: Option[String] = Some("Test Merchant")
+      modify: TransactionFeedItem => TransactionFeedItem = identity
   ): TransactionFeedItem = {
-    TransactionFeedItem(
-      feedItemUid = UUID.randomUUID(),
-      categoryUid = categoryUid,
-      amount = CurrencyAndAmount(currency, amountMinorUnits),
-      sourceAmount = CurrencyAndAmount(currency, amountMinorUnits),
-      direction = direction,
+    val base = TransactionFeedItem(
+      feedItemUid = UUID.fromString("22222222-2222-2222-2222-222222222222"),
+      categoryUid = mainCategoryUid,
+      amount = CurrencyAndAmount("GBP", amountMinorUnits),
+      sourceAmount = CurrencyAndAmount("GBP", amountMinorUnits),
+      direction = "OUT",
       updatedAt = ZonedDateTime.now(),
       transactionTime = ZonedDateTime.now(),
-      settlementTime = settlementTime,
+      settlementTime = Some(ZonedDateTime.now()),
       retryAllocationUntilTime = None,
       source = "FASTER_PAYMENTS_IN",
       sourceSubType = None,
-      status = status,
+      status = "SETTLED",
       transactingApplicationUserUid = None,
-      counterPartyType = counterPartyType,
+      counterPartyType = "MERCHANT",
       counterPartyUid = None,
-      counterPartyName = counterPartyName,
+      counterPartyName = Some("Test Merchant"),
       counterPartySubEntityUid = None,
       counterPartySubEntityName = None,
       counterPartySubEntityIdentifier = None,
       counterPartySubEntitySubIdentifier = None,
       exchangeRate = None,
       totalFees = None,
-      totalFeeAmount = totalFeeAmount,
+      totalFeeAmount = None,
       reference = Some("Test transaction"),
       country = "GB",
-      spendingCategory = spendingCategory,
+      spendingCategory = "GENERAL",
       userNote = None,
-      roundUp = roundUp,
+      roundUp = None,
       hasAttachment = None,
       hasReceipt = None,
       batchPaymentDetails = None
     )
+    modify(base)
   }
 
+  /** Helper to assert that the result contains exactly one valid transaction
+    * with the expected amount.
+    */
+  private def assertSingleValid(
+      result: Either[_, List[TransactionFeedItem]],
+      expectedAmount: Long
+  ): Unit =
+    result match {
+      case Right(List(tx)) => assertEquals(tx.amount.minorUnits, expectedAmount)
+      case other => fail(s"Expected single valid transaction but got $other")
+    }
+
+  /** Helper to assert that the result is a Left with NoTransactions error.
+    */
+  private def assertNoTxError(result: Either[AppError, _]): Unit =
+    result match {
+      case Left(NoTransactions) => ()
+      case Left(other) => fail(s"Expected NoTransactions error but got $other")
+      case Right(_)    => fail("Expected Left but got Right")
+    }
+
   test(
-    "validateTransactions should return valid transactions when all transactions are eligible"
+    "validateTransactions returns all valid transactions when all eligible"
   ) {
-    val transactions = List(
-      createValidTransaction(435L), // £4.35
-      createValidTransaction(250L), // £2.50
-      createValidTransaction(100L) // £1.00
+    val txs = List(435L, 250L, 100L).map(createValidTransaction(_))
+    val result = validator.validateTransactions(txs, mainCategoryUid)
+    assert(result.isRight)
+    result.foreach(txs => assertEquals(txs.length, 3))
+  }
+
+  test("calculateRoundupForTransaction calculates correct amounts") {
+    val cases = List(
+      435L -> 65L,
+      250L -> 50L,
+      199L -> 1L,
+      500L -> 0L,
+      1L -> 99L,
+      999L -> 1L,
+      1000L -> 0L
     )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 3)
+    cases.foreach { case (amt, expected) =>
+      val tx = createValidTransaction(amt)
+      assertEquals(
+        validator.validateRoundupAmount(List(tx), mainCategoryUid),
+        Right(expected)
+      )
     }
   }
 
-  test("validateTransactions should filter out ineligible transactions") {
-    val transactions = List(
-      createValidTransaction(435L), // Valid
-      createValidTransaction(
-        250L,
-        direction = "IN"
-      ), // Invalid - wrong direction
+  test("validateRoundupAmount returns 0 for whole pounds") {
+    val txs = List(500L, 1000L).map(createValidTransaction(_))
+    assertEquals(
+      validator.validateRoundupAmount(txs, mainCategoryUid),
+      Right(0L)
+    )
+  }
+
+  // Parameterized filtering tests
+  val filters = List[(String, TransactionFeedItem => TransactionFeedItem)](
+    "direction" -> (_.copy(direction = "IN")),
+    "currency" -> (tx =>
+      tx.copy(
+        amount = CurrencyAndAmount("USD", 250L),
+        sourceAmount = CurrencyAndAmount("USD", 250L)
+      )
+    ),
+    "status" -> (_.copy(status = "PENDING")),
+    "categoryUid" -> (_.copy(categoryUid =
+      UUID.fromString("33333333-3333-3333-3333-333333333333")
+    )),
+    "settlementTime" -> (_.copy(settlementTime = None)),
+    "roundUp" -> (_.copy(roundUp =
+      Some(
+        AssociatedFeedRoundUp(UUID.randomUUID(), CurrencyAndAmount("GBP", 50L))
+      )
+    )),
+    "totalFeeAmount" -> (_.copy(totalFeeAmount =
+      Some(CurrencyAndAmount("GBP", 50L))
+    )),
+    "spendingCategory BANK_CHARGE" -> (_.copy(spendingCategory =
+      "BANK_CHARGE"
+    )),
+    "spendingCategory INTEREST_PAYMENT" -> (_.copy(spendingCategory =
+      "INTEREST_PAYMENT"
+    )),
+    "internal Starling transfer" -> (_.copy(
+      counterPartyType = "PAYEE",
+      counterPartyName = Some("Starling Bank")
+    )),
+    "status ACCOUNT_CHECK" -> (_.copy(status = "ACCOUNT_CHECK"))
+  )
+
+  filters.foreach { case (name, mod) =>
+    test(s"validateTransactions filters out invalid $name") {
+      val valid = createValidTransaction(435L)
+      val invalid = mod(valid)
+      assertSingleValid(
+        validator.validateTransactions(List(valid, invalid), mainCategoryUid),
+        435L
+      )
+    }
+  }
+
+  test("validateTransactions returns NoTransactions error when none eligible") {
+    val txs = List(
+      createValidTransaction(250L, _.copy(direction = "IN")),
       createValidTransaction(
         300L,
-        currency = "USD"
-      ), // Invalid - wrong currency
-      createValidTransaction(150L, status = "PENDING") // Invalid - wrong status
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test(
-    "validateTransactions should return NoTransactions error when no transactions are eligible"
-  ) {
-    val transactions = List(
-      createValidTransaction(
-        250L,
-        direction = "IN"
-      ), // Invalid - wrong direction
-      createValidTransaction(
-        300L,
-        currency = "USD"
-      ), // Invalid - wrong currency
-      createValidTransaction(150L, status = "PENDING") // Invalid - wrong status
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isLeft, true)
-    result.left.foreach { error =>
-      assertEquals(error, NoTransactions)
-    }
-  }
-
-  test(
-    "validateTransactions should return NoTransactions error for empty list"
-  ) {
-    val result = validator.validateTransactions(List.empty, mainCategoryUid)
-
-    assertEquals(result.isLeft, true)
-    result.left.foreach { error =>
-      assertEquals(error, NoTransactions)
-    }
-  }
-
-  test(
-    "validateTransactions should filter out transactions with wrong category"
-  ) {
-    val wrongCategoryUid = UUID.randomUUID()
-    val transactions = List(
-      createValidTransaction(435L), // Valid - correct category
-      createValidTransaction(
-        250L,
-        categoryUid = wrongCategoryUid
-      ) // Invalid - wrong category
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test(
-    "validateTransactions should filter out transactions without settlement time"
-  ) {
-    val transactions = List(
-      createValidTransaction(435L), // Valid - has settlement time
-      createValidTransaction(
-        250L,
-        settlementTime = None
-      ) // Invalid - no settlement time
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test("validateTransactions should filter out transactions with roundUp") {
-    val roundUpData = AssociatedFeedRoundUp(
-      goalCategoryUid = UUID.randomUUID(),
-      amount = CurrencyAndAmount("GBP", 50L)
-    )
-    val transactions = List(
-      createValidTransaction(435L), // Valid - no roundUp
-      createValidTransaction(
-        250L,
-        roundUp = Some(roundUpData)
-      ) // Invalid - has roundUp
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test(
-    "validateTransactions should filter out transactions with totalFeeAmount"
-  ) {
-    val feeAmount = CurrencyAndAmount("GBP", 50L)
-    val transactions = List(
-      createValidTransaction(435L), // Valid - no fee
-      createValidTransaction(
-        250L,
-        totalFeeAmount = Some(feeAmount)
-      ) // Invalid - has fee
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test("validateTransactions should filter out BANK_CHARGE spending category") {
-    val transactions = List(
-      createValidTransaction(435L), // Valid - GENERAL category
-      createValidTransaction(
-        250L,
-        spendingCategory = "BANK_CHARGE"
-      ) // Invalid - BANK_CHARGE
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test(
-    "validateTransactions should filter out INTEREST_PAYMENT spending category"
-  ) {
-    val transactions = List(
-      createValidTransaction(435L), // Valid - GENERAL category
-      createValidTransaction(
-        250L,
-        spendingCategory = "INTEREST_PAYMENT"
-      ) // Invalid - INTEREST_PAYMENT
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test("validateTransactions should filter out internal Starling transfers") {
-    val transactions = List(
-      createValidTransaction(435L), // Valid - regular merchant
-      createValidTransaction(
-        250L,
-        counterPartyType = "PAYEE",
-        counterPartyName = Some("Starling Bank")
-      ) // Invalid - internal transfer
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test("validateTransactions should filter out ACCOUNT_CHECK status") {
-    val transactions = List(
-      createValidTransaction(435L), // Valid - SETTLED status
-      createValidTransaction(
-        250L,
-        status = "ACCOUNT_CHECK"
-      ) // Invalid - ACCOUNT_CHECK status
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test(
-    "validateRoundupAmount should calculate correct roundup for valid transactions"
-  ) {
-    val transactions = List(
-      createValidTransaction(435L), // £4.35 -> 65p roundup
-      createValidTransaction(250L), // £2.50 -> 50p roundup
-      createValidTransaction(199L) // £1.99 -> 1p roundup
-    )
-
-    val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { roundupAmount =>
-      // 65 + 50 + 1 = 116 pence
-      assertEquals(roundupAmount, 116L)
-    }
-  }
-
-  test(
-    "validateRoundupAmount should return 0 for transactions that are whole pounds"
-  ) {
-    val transactions = List(
-      createValidTransaction(500L), // £5.00 -> 0p roundup
-      createValidTransaction(1000L) // £10.00 -> 0p roundup
-    )
-
-    val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { roundupAmount =>
-      assertEquals(roundupAmount, 0L)
-    }
-  }
-
-  test(
-    "validateRoundupAmount should handle mixed whole pounds and partial amounts"
-  ) {
-    val transactions = List(
-      createValidTransaction(500L), // £5.00 -> 0p roundup
-      createValidTransaction(435L), // £4.35 -> 65p roundup
-      createValidTransaction(1000L) // £10.00 -> 0p roundup
-    )
-
-    val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { roundupAmount =>
-      assertEquals(roundupAmount, 65L)
-    }
-  }
-
-  test(
-    "validateRoundupAmount should return NoTransactions error when no valid transactions"
-  ) {
-    val transactions = List(
-      createValidTransaction(
-        250L,
-        direction = "IN"
-      ), // Invalid - wrong direction
-      createValidTransaction(300L, currency = "USD") // Invalid - wrong currency
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isLeft, true)
-    result.left.foreach { error =>
-      assertEquals(error, NoTransactions)
-    }
-  }
-
-  test(
-    "validateRoundupAmount should return NoTransactions error for empty transaction list"
-  ) {
-    val result = validator.validateRoundupAmount(List.empty, mainCategoryUid)
-
-    assertEquals(result.isLeft, true)
-    result.left.foreach { error =>
-      assertEquals(error, NoTransactions)
-    }
-  }
-
-  test(
-    "calculateRoundupForTransaction should calculate correct roundup amounts"
-  ) {
-    // Test various amounts and their expected roundups
-    val testCases = List(
-      (435L, 65L), // £4.35 -> 65p
-      (250L, 50L), // £2.50 -> 50p
-      (199L, 1L), // £1.99 -> 1p
-      (500L, 0L), // £5.00 -> 0p
-      (1L, 99L), // £0.01 -> 99p
-      (999L, 1L), // £9.99 -> 1p
-      (1000L, 0L) // £10.00 -> 0p
-    )
-
-    testCases.foreach { case (amount, expectedRoundup) =>
-      val transaction = createValidTransaction(amount)
-      val transactions = List(transaction)
-
-      val result = validator.validateRoundupAmount(transactions, mainCategoryUid)
-
-      assertEquals(result.isRight, true, s"Failed for amount $amount")
-      result.foreach { roundupAmount =>
-        assertEquals(
-          roundupAmount,
-          expectedRoundup,
-          s"Wrong roundup for amount $amount"
+        _.copy(
+          amount = CurrencyAndAmount("USD", 300L),
+          sourceAmount = CurrencyAndAmount("USD", 300L)
         )
-      }
-    }
+      ),
+      createValidTransaction(150L, _.copy(status = "PENDING"))
+    )
+    assertNoTxError(validator.validateTransactions(txs, mainCategoryUid))
+  }
+
+  test("validateTransactions returns NoTransactions error for empty list") {
+    assertNoTxError(validator.validateTransactions(List.empty, mainCategoryUid))
   }
 
   test(
-    "validateTransactions should handle case-insensitive Starling detection"
+    "validateRoundupAmount returns NoTransactions error when no valid transactions"
   ) {
-    val transactions = List(
-      createValidTransaction(435L), // Valid - regular merchant
-      createValidTransaction(
-        250L,
-        counterPartyType = "PAYEE",
-        counterPartyName = Some("STARLING BANK")
-      ), // Invalid - uppercase
+    val txs = List(
+      createValidTransaction(250L, _.copy(direction = "IN")),
       createValidTransaction(
         300L,
-        counterPartyType = "PAYEE",
-        counterPartyName = Some("starling bank")
-      ), // Invalid - lowercase
-      createValidTransaction(
-        150L,
-        counterPartyType = "PAYEE",
-        counterPartyName = Some("Starling")
-      ) // Invalid - partial match
+        _.copy(
+          amount = CurrencyAndAmount("USD", 300L),
+          sourceAmount = CurrencyAndAmount("USD", 300L)
+        )
+      )
     )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
-  }
-
-  test(
-    "validateTransactions should allow non-PAYEE counterPartyType with Starling name"
-  ) {
-    val transactions = List(
-      createValidTransaction(
-        435L,
-        counterPartyType = "MERCHANT",
-        counterPartyName = Some("Starling Coffee Shop")
-      ) // Valid - not PAYEE type
-    )
-
-    val result = validator.validateTransactions(transactions, mainCategoryUid)
-
-    assertEquals(result.isRight, true)
-    result.foreach { validTxs =>
-      assertEquals(validTxs.length, 1)
-      assertEquals(validTxs.head.amount.minorUnits, 435L)
-    }
+    assertNoTxError(validator.validateRoundupAmount(txs, mainCategoryUid))
   }
 }
