@@ -146,11 +146,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
 
   test("dryRun returns configured savings goal when present in config") {
     val configuredGoalId = UUID.randomUUID()
-    val configWithGoal = testConfig.copy(
-      starling = testConfig.starling.copy(initialGoalId = Some(configuredGoalId))
-    )
-
-    val dryRunService = GoalService.dryRun[IO](configWithGoal)
+    val dryRunService = GoalService.dryRun[IO](Some(configuredGoalId))
 
     dryRunService.getOrCreateGoal(testAccountId).map { result =>
       assertEquals(result, Right(configuredGoalId))
@@ -158,11 +154,7 @@ class GoalServiceSpec extends CatsEffectSuite with TestUtils {
   }
 
   test("dryRun generates deterministic UUID when no savings goal configured") {
-    val configWithoutGoal = testConfig.copy(
-      starling = testConfig.starling.copy(initialGoalId = None)
-    )
-
-    val dryRunService = GoalService.dryRun[IO](configWithoutGoal)
+    val dryRunService = GoalService.dryRun[IO](None)
 
     dryRunService.getOrCreateGoal(testAccountId).map { result =>
       assert(result.isRight)

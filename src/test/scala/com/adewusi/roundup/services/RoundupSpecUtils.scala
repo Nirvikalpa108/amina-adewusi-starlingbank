@@ -14,13 +14,11 @@ trait RoundupSpecUtils {
   def testConfig(
       accessToken: String = "fake-token",
       baseUri: Uri = Uri.unsafeFromString("http://fake-api"),
-      initialGoalId: Option[UUID] = None
   ): AppConfig =
     AppConfig(
       starling = StarlingConfig(
         accessToken = accessToken,
         baseUri = baseUri,
-        initialGoalId = initialGoalId
       )
     )
 

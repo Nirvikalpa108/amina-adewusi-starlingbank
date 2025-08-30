@@ -3,7 +3,7 @@ package com.adewusi.roundup.services
 import cats.Monad
 import cats.data.EitherT
 import com.adewusi.roundup.clients.SavingsGoalClient
-import com.adewusi.roundup.model.{AppConfig, AppError}
+import com.adewusi.roundup.model.AppError
 import com.adewusi.roundup.repository.GoalRepository
 
 import java.util.UUID
@@ -32,9 +32,9 @@ object GoalService {
     * Dry run implementation that returns the initialGoalId from config if present,
     * otherwise a provided UUID.
     */
-  def dryRun[F[_]: Monad](config: AppConfig): GoalService[F] = new GoalService[F] {
+  def dryRun[F[_]: Monad](initialGoalUuid: Option[UUID]): GoalService[F] = new GoalService[F] {
     override def getOrCreateGoal(accountUid: UUID): F[Either[AppError, UUID]] = {
-      val goalId = config.starling.initialGoalId.getOrElse(UUID.fromString("4FBA270E-9E40-4BAC-AB34-997B91749FA0"))
+      val goalId = initialGoalUuid.getOrElse(UUID.fromString("4FBA270E-9E40-4BAC-AB34-997B91749FA0"))
       Monad[F].pure(Right(goalId))
     }
   }

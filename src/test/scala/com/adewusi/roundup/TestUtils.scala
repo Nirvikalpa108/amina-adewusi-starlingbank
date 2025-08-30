@@ -10,8 +10,6 @@ trait TestUtils {
     StarlingConfig(
       accessToken = testToken,
       baseUri = testBaseUri,
-      initialGoalId = None,
-      startDate = None
     )
   )
 }

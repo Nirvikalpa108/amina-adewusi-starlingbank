@@ -7,7 +7,6 @@ import org.http4s._
 import org.http4s.client.Client
 import org.http4s.client.dsl.Http4sClientDsl
 import org.http4s.headers.Authorization
-import org.http4s.implicits._
 import org.typelevel.ci.CIStringSyntax
 
 trait StarlingSavingsGoalsApi[F[_]] {
@@ -22,9 +21,10 @@ object StarlingSavingsGoalsApi {
     import dsl._
 
     override def getSavingsGoals(accountUid: String): F[SavingsGoalsResponse] = {
+      val requestUri = config.starling.baseUri / "api" / "v2" / "account" / accountUid / "savings-goals"
       C.expect[SavingsGoalsResponse](
         GET(
-          uri"https://api-sandbox.starlingbank.com/api/v2/account" / accountUid / "savings-goals",
+          requestUri,
           Authorization(Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)),
           Header.Raw(ci"Accept", "application/json"),
           Header.Raw(ci"User-Agent", "Adewusi")
@@ -33,10 +33,11 @@ object StarlingSavingsGoalsApi {
     }
 
     override def createSavingsGoal(accountUid: String, request: CreateSavingsGoalRequest): F[CreateSavingsGoalResponse] = {
+      val requestUri = config.starling.baseUri / "api" / "v2" / "account" / accountUid / "savings-goals"
       C.expect[CreateSavingsGoalResponse](
         PUT(
           request,
-          uri"https://api-sandbox.starlingbank.com/api/v2/account" / accountUid / "savings-goals",
+          requestUri,
           Authorization(Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)),
           Header.Raw(ci"Accept", "application/json"),
           Header.Raw(ci"Content-Type", "application/json"),
@@ -46,10 +47,11 @@ object StarlingSavingsGoalsApi {
     }
 
     override def addMoney(accountUid: String, savingsGoalUid: String, transferUid: String, request: AddMoneyRequest): F[AddMoneyResponse] = {
+      val requestUri = config.starling.baseUri / "api" / "v2" / "account" / accountUid / "savings-goals" / savingsGoalUid / "add-money" / transferUid
       C.expect[AddMoneyResponse](
         PUT(
           request,
-          uri"https://api-sandbox.starlingbank.com/api/v2/account" / accountUid / "savings-goals" / savingsGoalUid / "add-money" / transferUid,
+          requestUri,
           Authorization(Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)),
           Header.Raw(ci"Accept", "application/json"),
           Header.Raw(ci"Content-Type", "application/json"),

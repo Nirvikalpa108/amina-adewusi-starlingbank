@@ -29,7 +29,8 @@ lazy val root = (project in file("."))
     assembly / assemblyMergeStrategy := {
       case "module-info.class" => MergeStrategy.discard
       case x => (assembly / assemblyMergeStrategy).value.apply(x)
-    }
+    },
+    Compile / run / fork := true
   )
 
 lazy val integration = (project in file("integration"))

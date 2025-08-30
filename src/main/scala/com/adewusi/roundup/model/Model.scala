@@ -13,8 +13,6 @@ import java.util.UUID
 case class StarlingConfig(
    accessToken: String,
    baseUri: Uri,
-   initialGoalId: Option[UUID],
-   startDate: Option[String] = None
 )
 
 object StarlingConfig {
@@ -44,6 +42,7 @@ sealed trait AppError
 sealed trait DomainError extends AppError
 sealed trait InfraError extends AppError
 
+case object NoTransactions extends DomainError
 final case class ZeroRoundup(reason: String) extends DomainError
 case object NoAccount extends DomainError
 final case class InvalidStoredSavingsGoalUuid(reason: String) extends DomainError
@@ -55,6 +54,6 @@ final case class GenericError(reason: String) extends InfraError
 final case class FileReadError(reason: String) extends InfraError
 final case class FileWriteError(reason: String) extends InfraError
 
-case class CliArgs(startDate: LocalDate, isDryRun: Boolean = false, goalId: Option[UUID])
+case class CliArgs(startDate: LocalDate, isDryRun: Boolean = false, goalId: Option[UUID] = None)
 
 final case class RoundupResult(amountMinorUnits: Long, goalId: UUID)
