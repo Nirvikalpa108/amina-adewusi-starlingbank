@@ -15,7 +15,7 @@ trait TransactionClient[F[_]] {
 }
 
 object TransactionClient {
-  def impl[F[_]: Concurrent](implicit
+  def impl[F[_]: Concurrent](config: AppConfig)(implicit
       starlingTransactionApi: StarlingTransactionApi[F]
   ): TransactionClient[F] =
     new TransactionClient[F] {
@@ -26,7 +26,7 @@ object TransactionClient {
         val startUtc: ZonedDateTime = startDate.atStartOfDay(ZoneOffset.UTC)
         val endUtc: ZonedDateTime = startUtc.plusDays(7)
         starlingTransactionApi
-          .getSettledTransactionsBetween(account.accountUid, startUtc, endUtc)
+          .getSettledTransactionsBetween(account.accountUid, startUtc, endUtc, config.starling.accessToken, config.starling.baseUri)
           .attempt
           .map {
             case Right(response) => Right(response.feedItems)

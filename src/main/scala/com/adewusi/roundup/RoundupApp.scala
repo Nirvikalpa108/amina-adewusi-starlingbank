@@ -20,11 +20,11 @@ object RoundupApp {
         for {
           result <- {
             implicit val starlingAccountsApi: StarlingAccountsApi[IO] = StarlingAccountsApi.impl[IO](client)
-            implicit val starlingTransactionApi: StarlingTransactionApi[IO] = StarlingTransactionApi.impl[IO](client, config)
+            implicit val starlingTransactionApi: StarlingTransactionApi[IO] = StarlingTransactionApi.impl[IO](client)
             implicit val starlingSavingsApi: StarlingSavingsGoalsApi[IO] = StarlingSavingsGoalsApi.impl[IO](client, config)
             implicit val accountClient: AccountClient[IO] = AccountClient.impl[IO](config)
             implicit val accountSelector: AccountSelector = AccountSelector.impl
-            implicit val transactionClient: TransactionClient[IO] = TransactionClient.impl[IO]
+            implicit val transactionClient: TransactionClient[IO] = TransactionClient.impl[IO](config)
             implicit val transactionValidator: TransactionValidator = TransactionValidator.impl
             implicit val savingsGoalClient: SavingsGoalClient[IO] = if (isDryRun) SavingsGoalClient.dryRun[IO] else SavingsGoalClient.impl[IO]
             implicit val transferRepository: TransferRepository[IO] = if (isDryRun) TransferRepository.dryRun[IO](transferRepoRef) else TransferRepository.inMemoryTransferRepository[IO](transferRepoRef)

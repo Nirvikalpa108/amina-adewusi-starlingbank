@@ -51,7 +51,6 @@ class AccountSelectorSpec extends FunSuite {
     assertEquals(result, Right(gbpPrimaryAccount))
   }
 
-  //TODO double check this possibility
   test("getCorrectAccount returns first GBP PRIMARY account when multiple exist") {
     val anotherGbpPrimary = gbpPrimaryAccount.copy(
       accountUid = UUID.randomUUID(),
@@ -90,7 +89,6 @@ class AccountSelectorSpec extends FunSuite {
     assertEquals(result, Left(NoAccount))
   }
 
-  //TODO check this case
   test("getCorrectAccount is case sensitive for currency") {
     val lowercaseGbpAccount = gbpPrimaryAccount.copy(
       accountUid = UUID.randomUUID(),
@@ -101,7 +99,6 @@ class AccountSelectorSpec extends FunSuite {
     assertEquals(result, Left(NoAccount))
   }
 
-  //TODO check this case
   test("getCorrectAccount is case sensitive for accountType") {
     val lowercasePrimaryAccount = gbpPrimaryAccount.copy(
       accountUid = UUID.randomUUID(),

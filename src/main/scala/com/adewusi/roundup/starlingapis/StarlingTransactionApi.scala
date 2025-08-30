@@ -1,7 +1,7 @@
 package com.adewusi.roundup.starlingapis
 
 import cats.effect.Concurrent
-import com.adewusi.roundup.model.{AppConfig, TransactionFeedResponse}
+import com.adewusi.roundup.model.TransactionFeedResponse
 import org.http4s.Method._
 import org.http4s._
 import org.http4s.circe.CirceEntityCodec._
@@ -18,14 +18,15 @@ trait StarlingTransactionApi[F[_]] {
   def getSettledTransactionsBetween(
       accountUid: UUID,
       minTransactionTimestamp: ZonedDateTime,
-      maxTransactionTimestamp: ZonedDateTime
+      maxTransactionTimestamp: ZonedDateTime,
+      accessToken: String,
+      baseUri: Uri
   ): F[TransactionFeedResponse]
 }
 
 object StarlingTransactionApi {
   def impl[F[_]: Concurrent](
-      C: Client[F],
-      config: AppConfig
+      C: Client[F]
   ): StarlingTransactionApi[F] =
     new StarlingTransactionApi[F] {
       val dsl = new Http4sClientDsl[F] {}
@@ -34,23 +35,24 @@ object StarlingTransactionApi {
       override def getSettledTransactionsBetween(
           accountUid: UUID,
           minTransactionTimestamp: ZonedDateTime,
-          maxTransactionTimestamp: ZonedDateTime
+          maxTransactionTimestamp: ZonedDateTime,
+          accessToken: String,
+          baseUri: Uri
       ): F[TransactionFeedResponse] = {
         val min =
           minTransactionTimestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
         val max =
           maxTransactionTimestamp.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+        val requestUri =
+          baseUri / "api" / "v2" / "feed" / "account" / accountUid.toString / "settled-transactions-between"
 
         C.expect[TransactionFeedResponse](
           GET(
-            Uri
-              .unsafeFromString(
-                s"https://api-sandbox.starlingbank.com/api/v2/feed/account/$accountUid/settled-transactions-between"
-              )
+            requestUri
               .withQueryParam("minTransactionTimestamp", min)
               .withQueryParam("maxTransactionTimestamp", max),
             Authorization(
-              Credentials.Token(AuthScheme.Bearer, config.starling.accessToken)
+              Credentials.Token(AuthScheme.Bearer, accessToken)
             ),
             Header.Raw(ci"Accept", "application/json"),
             Header.Raw(ci"User-Agent", "Adewusi")
